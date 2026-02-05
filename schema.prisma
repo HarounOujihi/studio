@@ -1,0 +1,2543 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // url = "postgresql://postgres:9c1c-6814-4d39-b98@localhost:54325/sawi-dev?schema=public"
+}
+
+// --User
+model User {
+  oidcId      String       @id @unique
+  firstName   String?
+  middleName  String?
+  lastName    String?
+  gender      UserGender?
+  birthDay    DateTime?
+  email       String?
+  phone       String?
+  picture     String?
+  password    String?
+  userDevices UserDevice[]
+
+  address        String?
+  bio            String?
+  nationality    String?
+  socialFacebook String?
+  socialLinkedin String?
+  socialTwitter  String?
+  website        String?
+
+  isAgent Boolean? @default(false)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organizations         UserOrganization[]
+  Notifications         Notifications[]
+  Cart                  Cart[]
+  quizUserAnswers       QuizUserAnswer[]
+  assignmentSubmissions AssignmentSubmission[]
+  certificates          Certificate[]
+  settings              UserSetting[]
+  supportConversations  SupportConversation[]
+  supportMessages       SupportMessage[]
+}
+
+enum UserGender {
+  Male
+  Female
+}
+
+// --UserOrganization
+model UserOrganization {
+  idOrg        String
+  role         OrganizationRole
+  userId       String
+  organization Organization     @relation(fields: [idOrg], references: [id])
+  user         User             @relation(fields: [userId], references: [oidcId])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@id([idOrg, userId])
+}
+
+enum OrganizationRole {
+  SUPER_ADMIN
+  MANAGER
+  USER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EstablishmentDomain {
+  BUSINESS
+  EDUCATION
+  CATERING
+}
+
+// --Address
+model Address {
+  id        String  @id
+  idOrg     String  @map("idOrg")
+  idEtb     String  @map("idEtb")
+  referToId String?
+  street    String?
+  street2   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  country   String?
+  lat       String?
+  lng       String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization    Organization  @relation(fields: [idOrg], references: [id])
+  establishment   Establishment @relation(fields: [idEtb], references: [id])
+  clients         Client[]
+  providers       Provider[]
+  deposits        Deposit[]
+  headersDelivery Header[]      @relation("Delivery")
+  headersBilling  Header[]      @relation("Billing")
+}
+
+// --Organization
+model Organization {
+  id                 String   @id
+  reference          String
+  name               String?
+  logo               String?
+  active             Boolean? @default(false)
+  commercialRegister String?
+  taxIdNumber        String?
+  customsCode        String?
+  phones             String[]
+  emails             String[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  establishments       Establishment[]
+  deposits             Deposit[]
+  locations            Location[]
+  contactTypes         ContactType[]
+  banks                Bank[]
+  bankAccounts         BankAccount[]
+  taxes                Tax[]
+  currencyCoefficients CurrencyCoefficient[]
+  discounts            Discount[]
+  contacts             Contact[]
+  providers            Provider[]
+  clients              Client[]
+  categories           Category[]
+  units                Unit[]
+  unitCoefficients     UnitCoefficient[]
+  articles             Article[]
+  variantProps         VariantProps[]
+  lotCompositions      LotComposition[]
+  stockpiles           Stockpile[]
+  organizations        UserOrganization[]
+  operations           Operation[]
+  commercialDocs       CommercialDoc[]
+  phases               Phase[]
+  transitions          Transition[]
+  headers              Header[]
+  movements            Movement[]
+  ventilations         Ventilation[]
+  pricing              Pricing[]
+  pointings            Pointing[]
+  projects             Project[]
+  emplyees             Employee[]
+
+  articleCategories       ArticleCategories[]
+  address                 Address[]
+  inventoryHeaders        InventoryHeader[]
+  inventoryMovements      InventoryMovement[]
+  articleDeposits         ArticleDeposits[]
+  articleGarnishes        ArticleGarnish[]
+  garnishes               Garnish[]
+  customArticleSections   ArticleCustomizeSection[]
+  customArticleOptions    ArticleCustomizeOption[]
+  articleCombinations     ArticleCombination[]
+  articleCombinationLinks ArticleCombinationLink[]
+  medias                  Media[]
+  regulations             Regulation[]
+  regulationMovements     RegulationMovement[]
+  carts                   Cart[]
+  courseSections          CourseSection[]
+  lessons                 Lesson[]
+  quizzes                 Quiz[]
+  quizQuestions           QuizQuestion[]
+  quizAnswers             QuizAnswer[]
+  assignments             Assignment[]
+  assignmentSubmissions   AssignmentSubmission[]
+  certificates            Certificate[]
+  enrollments             Enrollment[]
+  quizUserAnswers         QuizUserAnswer[]
+  // notifications        Notifications[]
+  trainingSchedules       TrainingSchedule[]
+  trainingSessions        TrainingSession[]
+  schoolUsers             SchoolUser[]
+  consultationManagements ConsultationManagement[]
+  articleTrainers         ArticleTrainer[]
+  settings                Setting[]
+  userSettings            UserSetting[]
+  customFields            CustomField[]
+  customFieldValues       CustomFieldValue[]
+  numberSequences         NumberSequence[]
+  jobs                    Job[]
+  SupportConversation     SupportConversation[]
+  SupportCsatSurvey       SupportCsatSurvey[]
+  blogPosts               BlogPost[]
+  blogPostCategories      BlogPostCategory[]
+  blogPostRelatedArticles BlogPostRelatedArticles[]
+
+  ecPages  EcPage[]
+  ecThemes EcTheme[]
+}
+
+// --Establishment
+model Establishment {
+  id          String               @id
+  idOrg       String               @map("idOrg")
+  reference   String
+  designation String?
+  idCurrency  String?              @map("idCurrency")
+  domain      EstablishmentDomain? @default(BUSINESS)
+  isDefault   Boolean?             @default(false)
+  isHidden    Boolean?             @default(false)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization         Organization          @relation(fields: [idOrg], references: [id])
+  currency             Currency?             @relation(fields: [idCurrency], references: [id])
+  deposits             Deposit[]
+  locations            Location[]
+  contactTypes         ContactType[]
+  bankAccounts         BankAccount[]
+  taxes                Tax[]
+  currencyCoefficients CurrencyCoefficient[]
+  discounts            Discount[]
+  contacts             Contact[]
+  providers            Provider[]
+  clients              Client[]
+  categories           Category[]
+  units                Unit[]
+  unitCoefficients     UnitCoefficient[]
+  articles             Article[]
+  variantProps         VariantProps[]
+  lotCompositions      LotComposition[]
+  stockpiles           Stockpile[]
+  operations           Operation[]
+  commercialDoc        CommercialDoc[]
+  phase                Phase[]
+  transition           Transition[]
+  headers              Header[]
+  movements            Movement[]
+  ventilations         Ventilation[]
+  pricing              Pricing[]
+  projects             Project[]
+  pointing             Pointing[]
+  emplyees             Employee[]
+
+  articleCategories  ArticleCategories[]
+  address            Address[]
+  inventoryHeaders   InventoryHeader[]
+  inventoryMovements InventoryMovement[]
+  articleDeposits    ArticleDeposits[]
+  articleGarnishes   ArticleGarnish[]
+  garnishes          Garnish[]
+
+  customArticleSections   ArticleCustomizeSection[]
+  customArticleOptions    ArticleCustomizeOption[]
+  articleCombinations     ArticleCombination[]
+  articleCombinationLinks ArticleCombinationLink[]
+  medias                  Media[]
+  regulations             Regulation[]
+  regulationMovements     RegulationMovement[]
+  carts                   Cart[]
+
+  courseSections          CourseSection[]
+  lessons                 Lesson[]
+  quizzes                 Quiz[]
+  quizQuestions           QuizQuestion[]
+  quizAnswers             QuizAnswer[]
+  assignments             Assignment[]
+  assignmentSubmissions   AssignmentSubmission[]
+  certificates            Certificate[]
+  enrollments             Enrollment[]
+  quizUserAnswers         QuizUserAnswer[]
+  // notifications        Notifications[]
+  trainingSchedules       TrainingSchedule[]
+  trainingSessions        TrainingSession[]
+  schoolUsers             SchoolUser[]
+  consultationManagements ConsultationManagement[]
+  articleTrainers         ArticleTrainer[]
+  settings                Setting[]
+  userSettings            UserSetting[]
+  customFields            CustomField[]
+  customFieldValues       CustomFieldValue[]
+  numberSequences         NumberSequence[]
+  jobs                    Job[]
+  SupportConversation     SupportConversation[]
+  SupportCsatSurvey       SupportCsatSurvey[]
+  blogPosts               BlogPost[]
+  blogPostCategories      BlogPostCategory[]
+  blogPostRelatedArticles BlogPostRelatedArticles[]
+
+  ecPages  EcPage[]
+  ecThemes EcTheme[]
+}
+
+// --Deposit
+model Deposit {
+  id          String      @id
+  idOrg       String      @map("idOrg")
+  idEtb       String      @map("idEtb")
+  reference   String
+  designation String?
+  type        DepositType
+  media       String?
+  idAddress   String?     @map("idAddress")
+  isDefault   Boolean?    @default(false)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization       Organization        @relation(fields: [idOrg], references: [id])
+  establishment      Establishment       @relation(fields: [idEtb], references: [id])
+  address            Address?            @relation(fields: [idAddress], references: [id])
+  locations          Location[]
+  stockpiles         Stockpile[]
+  headers            Header[]
+  movements          Movement[]
+  ventilations       Ventilation[]
+  inventoryHeaders   InventoryHeader[]
+  inventoryMovements InventoryMovement[]
+  ArticleDeposits    ArticleDeposits[]
+}
+
+enum DepositType {
+  WAREHOUSE
+  STORE
+  SHOWROOM
+  OTHER
+}
+
+// --Location
+model Location {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  idDepo      String  @map("idDepo")
+  reference   String
+  designation String?
+  volume      String?
+  media       String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  deposit       Deposit       @relation(fields: [idDepo], references: [id])
+  stockpiles    Stockpile[]
+}
+
+// --ContactType
+model ContactType {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  contacts      Contact[]
+}
+
+// --Bank
+model Bank {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  reference   String
+  designation String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization Organization  @relation(fields: [idOrg], references: [id])
+  bankAccounts BankAccount[]
+}
+
+// --BankAccount
+model BankAccount {
+  id        String @id
+  idOrg     String @map("idOrg")
+  idEtb     String @map("idEtb")
+  idBank    String @map("idBank")
+  reference String
+  RIB       String
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  bank          Bank          @relation(fields: [idBank], references: [id])
+  contacts      Contact[]
+  providers     Provider[]
+  clients       Client[]
+}
+
+// --Tax
+model Tax {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+  value       Float?
+  taxType     String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  providers     Provider[]
+  clients       Client[]
+  headers       Header[]
+  movements     Movement[]
+  ventilations  Ventilation[]
+  pricing       Pricing[]
+}
+
+// --Currency
+model Currency {
+  id          String  @id
+  reference   String
+  designation String?
+  symbol      String?
+  decimals    Int?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  currencyCoefficientsFrom CurrencyCoefficient[] @relation("CurrencyFrom")
+  currencyCoefficientsTo   CurrencyCoefficient[] @relation("CurrencyTo")
+  establishments           Establishment[]
+}
+
+// --CurrencyCoefficient
+model CurrencyCoefficient {
+  id             String  @id
+  idOrg          String  @map("idOrg")
+  idEtb          String  @map("idEtb")
+  reference      String
+  designation    String?
+  value          Float?
+  idCurrencyFrom String  @map("idCurrencyFrom")
+  idCurrencyTo   String  @map("idCurrencyTo")
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  currencyFrom  Currency      @relation("CurrencyFrom", fields: [idCurrencyFrom], references: [id])
+  currencyTo    Currency      @relation("CurrencyTo", fields: [idCurrencyTo], references: [id])
+}
+
+// --Discount
+model Discount {
+  id          String   @id
+  idOrg       String   @map("idOrg")
+  idEtb       String   @map("idEtb")
+  reference   String
+  designation String?
+  value       Float
+  startDate   DateTime
+  endDate     DateTime
+  idArticle   String?  @map("idArticle")
+  idClient    String?  @map("idClient")
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  article       Article?      @relation(fields: [idArticle], references: [id])
+  client        Client?       @relation(fields: [idClient], references: [id])
+  movements     Movement[]
+  profitType    ProfitType    @default(PERCENT)
+}
+
+// --Contact
+model Contact {
+  id             String  @id
+  idOrg          String  @map("idOrg")
+  idEtb          String  @map("idEtb")
+  idTypeContact  String  @map("idTypeContact")
+  idBankAccount  String  @map("idBankAccount")
+  reference      String
+  firstName      String?
+  lastName       String?
+  companyName    String?
+  email          String?
+  tel            String?
+  personalIdType String?
+  personalId     String?
+  taxIdNumber    String?
+  customsCode    String?
+  nature         Nature
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  headers       Header[]
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  contactType   ContactType   @relation(fields: [idTypeContact], references: [id])
+  bankAccount   BankAccount   @relation(fields: [idBankAccount], references: [id])
+}
+
+// --Provider
+model Provider {
+  id             String  @id
+  idOrg          String  @map("idOrg")
+  idEtb          String  @map("idEtb")
+  idTax          String? @map("idTax")
+  idBankAccount  String? @map("idBankAccount")
+  reference      String
+  idAddress      String? @map("idAddress")
+  firstName      String?
+  lastName       String?
+  companyName    String?
+  email          String?
+  tel            String?
+  personalIdType String?
+  personalId     String?
+  taxIdNumber    String?
+  customsCode    String?
+  note           String?
+  nature         Nature
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  headers       Header[]
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  tax           Tax?          @relation(fields: [idTax], references: [id])
+  bankAccount   BankAccount?  @relation(fields: [idBankAccount], references: [id])
+  address       Address?      @relation(fields: [idAddress], references: [id])
+}
+
+// --Client
+model Client {
+  id             String  @id
+  idOrg          String  @map("idOrg")
+  idEtb          String  @map("idEtb")
+  idTax          String? @map("idTax")
+  idBankAccount  String? @map("idBankAccount")
+  idUser         String?
+  reference      String
+  firstName      String?
+  lastName       String?
+  companyName    String?
+  email          String?
+  tel            String?
+  picture        String?
+  personalIdType String?
+  personalId     String?
+  taxIdNumber    String?
+  customsCode    String?
+  note           String?
+  idAddress      String? @map("idAddress")
+  nature         Nature
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  headers             Header[]
+  organization        Organization             @relation(fields: [idOrg], references: [id])
+  establishment       Establishment            @relation(fields: [idEtb], references: [id])
+  tax                 Tax?                     @relation(fields: [idTax], references: [id])
+  bankAccount         BankAccount?             @relation(fields: [idBankAccount], references: [id])
+  address             Address?                 @relation(fields: [idAddress], references: [id])
+  discounts           Discount[]
+  UserDevice          UserDevice[]
+  carts               Cart[]
+  enrollments         Enrollment[]
+  schoolUsers         SchoolUser[]
+  consultationTrainer ConsultationManagement[]
+}
+
+enum Nature {
+  COMPANY
+  INDIVIDUAL
+}
+
+enum MediaType {
+  TEXT
+  VIDEO
+  IMAGE
+  FILE
+}
+
+// --Category
+model Category {
+  id               String   @id
+  idOrg            String   @map("idOrg")
+  idEtb            String   @map("idEtb")
+  idParent         String?
+  reference        String
+  slug             String?
+  designation      String?
+  isSubCategory    Boolean? @default(false)
+  logo             String?
+  image            String?
+  description      String?
+  shortDescription String?
+  sortIndex        Int?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization    Organization  @relation(fields: [idOrg], references: [id])
+  establishment   Establishment @relation(fields: [idEtb], references: [id])
+  parent          Category?     @relation("ChildCategories", fields: [idParent], references: [id])
+  childCategories Category[]    @relation("ChildCategories")
+
+  articleCategories ArticleCategories[]
+  translations      CategoryTranslation[]
+  medias            Media[]
+}
+
+model Media {
+  id        String     @id @default(uuid())
+  path      String
+  type      MediaType? @default(FILE)
+  idOrg     String     @map("idOrg")
+  idEtb     String     @map("idEtb")
+  sortIndex Int?       @default(0)
+  isDefault Boolean?   @default(false)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idArticle String?
+  article   Article? @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  idCategory String?
+  category   Category? @relation(fields: [idCategory], references: [id], onDelete: Cascade)
+
+  idLesson String?
+  lesson   Lesson? @relation(fields: [idLesson], references: [id], onDelete: Cascade)
+
+  idSupportConversation String?
+  supportConversation   SupportConversation? @relation(fields: [idSupportConversation], references: [id], onDelete: Cascade)
+
+  idSupportMessage String?
+  supportMessage   SupportMessage? @relation(fields: [idSupportMessage], references: [id], onDelete: Cascade)
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// --ArticleCategories
+model ArticleCategories {
+  idOrg      String @map("idOrg")
+  idEtb      String @map("idEtb")
+  idArticle  String @map("idArticle")
+  idCategory String @map("idCategory")
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  articles      Article       @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  categories    Category      @relation(fields: [idCategory], references: [id])
+
+  @@id([idArticle, idCategory])
+}
+
+// --Unit
+model Unit {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization         Organization        @relation(fields: [idOrg], references: [id])
+  establishment        Establishment       @relation(fields: [idEtb], references: [id])
+  unitCoefficientsFrom UnitCoefficient[]   @relation("UnitCoefficientsFrom")
+  unitCoefficientsTo   UnitCoefficient[]   @relation("UnitCoefficientsTo")
+  articlesSold         Article[]           @relation("ArticlesSold")
+  articlesPurchased    Article[]           @relation("ArticlesPurchased")
+  movements            Movement[]
+  Ventilation          Ventilation[]
+  inventoryMovements   InventoryMovement[]
+}
+
+// --UnitCoefficient
+model UnitCoefficient {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+  unitFrom    String  @map("unitFrom")
+  unitTo      String  @map("unitTo")
+  value       Float
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  unit_from     Unit          @relation("UnitCoefficientsFrom", fields: [unitFrom], references: [id])
+  unit_to       Unit          @relation("UnitCoefficientsTo", fields: [unitTo], references: [id])
+}
+
+// --Article
+model Article {
+  id           String   @id
+  idOrg        String   @map("idOrg")
+  idEtb        String   @map("idEtb")
+  idParent     String?
+  isSubArticle Boolean  @default(false)
+  isPublish    Boolean? @default(false)
+  reference    String
+  slug         String?
+  designation  String?
+  details      String?
+  materials    String?
+  sortIndex    Int?     @default(0)
+
+  EAN          String?
+  serialNumber String?
+  saleUnit     String?   @map("saleUnit")
+  purchaseUnit String?   @map("purchaseUnit")
+  buySell      BuySell[]
+  picking      Picking
+
+  isService        Boolean? @default(false)
+  isDigitalProduct Boolean? @default(false)
+
+  productType ProductType? @default(PHYSICAL_PRODUCT)
+
+  isExtra           Boolean?          @default(false)
+  isBillingExtra    Boolean?          @default(false)
+  stockManagement   StockManagement
+  volume            String?
+  weight            Float?
+  articleManagement ArticleManagement
+  media             String?
+  gallery           String[]          @default([])
+  description       String?
+  shortDescription  String?
+  childBasedPrice   Boolean?          @default(false)
+  serviceType       ServiceType?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization       Organization              @relation(fields: [idOrg], references: [id])
+  establishment      Establishment             @relation(fields: [idEtb], references: [id])
+  sale_unit          Unit?                     @relation("ArticlesSold", fields: [saleUnit], references: [id])
+  purchase_unit      Unit?                     @relation("ArticlesPurchased", fields: [purchaseUnit], references: [id])
+  parentArticleProps VariantProps[]            @relation("ParentArticle")
+  subArticleProps    VariantProps[]            @relation("GeneratedSubArticle")
+  lot                LotComposition[]          @relation("Lot")
+  composant          LotComposition[]          @relation("Composant")
+  stockpiles         Stockpile[]
+  pricing            Pricing[]
+  Operation          Operation?                @relation(fields: [operationId], references: [id])
+  operationId        String?
+  article            Movement[]                @relation("article")
+  lotArticle         Movement[]                @relation("parent")
+  ventilations       Ventilation[]
+  articleCategories  ArticleCategories[]
+  discounts          Discount[]
+  articleGarnishes   ArticleGarnish[]
+  inventoryMovements InventoryMovement[]
+  ArticleDeposits    ArticleDeposits[]
+  translations       ArticleTranslation[]
+  customSections     ArticleCustomizeSection[]
+  combinations       ArticleCombination[]
+  // categoryMedia      CategoryMedia[]
+  medias             Media[]
+  cartItems          CartItem[]
+  assignments        Assignment[]
+  certificates       Certificate[]
+  enrollments        Enrollment[]
+  courseSections     CourseSection[]
+  quizzes            Quiz[]
+
+  parent           Article?  @relation("ChildArticles", fields: [idParent], references: [id], onDelete: Cascade)
+  childrenArticles Article[] @relation("ChildArticles")
+
+  TrainingSchedule        TrainingSchedule[]
+  consultationManagements ConsultationManagement[]
+  articleTrainers         ArticleTrainer[]
+
+  blogPosts               BlogPost[]
+  blogPostRelatedArticles BlogPostRelatedArticles[]
+}
+
+enum ServiceType {
+  CONSULTING
+  ADVERTISING
+  SUBSCRIPTION
+}
+
+enum ProductType {
+  PHYSICAL_PRODUCT
+  DIGITAL_PRODUCT
+  SERVICE
+  WEBINAR
+}
+
+model ArticleTranslation {
+  id        String       @id @default(uuid())
+  idArticle String
+  article   Article      @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  language  LanguageCode
+
+  designation      String?
+  description      String?
+  details          String?
+  materials        String?
+  shortDescription String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@unique([idArticle, language]) // Ensure one translation per language per article
+}
+
+model CategoryTranslation {
+  id               String       @id @default(uuid())
+  idCategory       String
+  category         Category     @relation(fields: [idCategory], references: [id], onDelete: Cascade)
+  language         LanguageCode
+  designation      String?
+  description      String?
+  shortDescription String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@unique([idCategory, language]) // Ensure one translation per language per article
+}
+
+enum LanguageCode {
+  EN
+  FR
+  ES
+  DE
+  IT
+  PT
+  AR
+  ZH
+}
+
+enum BuySell {
+  CAN_BE_PURCHASED
+  CAN_BE_SOLD
+  CAN_BE_MANUFACTURED
+}
+
+enum Picking {
+  FIFO
+  LIFO
+  FEFO
+}
+
+enum StockManagement {
+  IN_STOCK
+  OUT_OF_STOCK
+}
+
+enum ArticleManagement {
+  BY_LOT
+  BY_SERIAL_NUMBER
+  BY_EAN
+}
+
+// --InventoryHeader
+model InventoryHeader {
+  id              String          @id
+  idOrg           String          @map("idOrg")
+  idEtb           String          @map("idEtb")
+  reference       String
+  designation     String?
+  codeOperation   String          @default("UUU")
+  idDeposit       String          @map("idDeposit")
+  inventoryType   InventoryType
+  inventoryStatus InventoryStatus
+  createdAt       DateTime
+
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization       Organization        @relation(fields: [idOrg], references: [id])
+  establishment      Establishment       @relation(fields: [idEtb], references: [id])
+  deposit            Deposit             @relation(fields: [idDeposit], references: [id])
+  inventoryMovements InventoryMovement[]
+}
+
+enum InventoryType {
+  INVENTORY
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum InventoryStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+// --InventoryMovement
+model InventoryMovement {
+  id            String @id
+  idOrg         String @map("idOrg")
+  idEtb         String @map("idEtb")
+  idHeader      String @map("idHeader")
+  idArticle     String @map("idArticle")
+  idDeposit     String @map("idDeposit")
+  idUnit        String @map("idUnit")
+  codeOperation String @default("UUU")
+  qtyReal       Float?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization    @relation(fields: [idOrg], references: [id])
+  establishment Establishment   @relation(fields: [idEtb], references: [id])
+  header        InventoryHeader @relation(fields: [idHeader], references: [id], onDelete: Cascade)
+  article       Article         @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  deposit       Deposit         @relation(fields: [idDeposit], references: [id], onDelete: Cascade)
+  unit          Unit            @relation(fields: [idUnit], references: [id], onDelete: Cascade)
+}
+
+// --VariantProps
+model VariantProps {
+  id           String      @id
+  idOrg        String      @map("idOrg")
+  idEtb        String      @map("idEtb")
+  idArticle    String      @map("idArticle")
+  idSubArticle String?     @map("idSubArticle")
+  reference    String
+  designation  String?
+  type         VariantType
+  value        String
+  image        String?
+  sortIndex    Int?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization       Organization  @relation(fields: [idOrg], references: [id])
+  establishment      Establishment @relation(fields: [idEtb], references: [id])
+  parentArticleProps Article       @relation("ParentArticle", fields: [idArticle], references: [id], onDelete: Cascade)
+  subArticleProps    Article?      @relation("GeneratedSubArticle", fields: [idSubArticle], references: [id], onDelete: Cascade)
+}
+
+enum VariantType {
+  COLOR
+  SIZE
+  NUMBER
+  TEXT
+}
+
+// --LotComposition
+model LotComposition {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  idLot       String  @map("idLot")
+  idComposant String  @map("idComposant")
+  reference   String
+  designation String?
+  qty         Float?  @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  lot           Article       @relation("Lot", fields: [idLot], references: [id], onDelete: Cascade)
+  composant     Article       @relation("Composant", fields: [idComposant], references: [id])
+}
+
+// --Stockpile
+model Stockpile {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  idDeposit   String? @map("idDeposit")
+  idLocation  String? @map("idLocation")
+  idArticle   String  @map("idArticle")
+  qtyReal     Float?
+  qtyVirtual  Float?
+  qtyReserved Float?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  deposit       Deposit?      @relation(fields: [idDeposit], references: [id])
+  location      Location?     @relation(fields: [idLocation], references: [id])
+  article       Article       @relation(fields: [idArticle], references: [id])
+  ventilations  Ventilation[]
+}
+
+// --Pricing
+model Pricing {
+  id            String     @id
+  idOrg         String     @map("idOrg")
+  idEtb         String     @map("idEtb")
+  idArticle     String     @map("idArticle")
+  idTax         String?    @map("idTax")
+  purchasePrice Float?     @default(0)
+  fees          Float?     @default(0)
+  profitType    ProfitType
+  profitMargin  Float      @default(0)
+  salePrice     Float      @default(0) //  salePrice or publicPrice
+  // costPrice     Float? ==> Calculated field = puechasePrice + tax + fees
+  effectDate    DateTime
+  // CUMP          Float?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  article       Article       @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  tax           Tax?          @relation(fields: [idTax], references: [id])
+  movements     Movement[]
+}
+
+enum ProfitType {
+  PERCENT
+  VALUE
+}
+
+// --Operation
+model Operation {
+  id            String  @id
+  idOrg         String  @map("idOrg")
+  idEtb         String  @map("idEtb")
+  codeOperation String  @unique
+  designation   String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  virtualAction  OperationAction?
+  realAction     OperationAction?
+  reservedAction OperationAction?
+  transition     Transition[]
+  articles       Article[]
+  organization   Organization     @relation(fields: [idOrg], references: [id])
+  establishment  Establishment    @relation(fields: [idEtb], references: [id])
+}
+
+enum OperationAction {
+  ADD
+  MINUS
+  UNCHANGED
+}
+
+// --CommercialDoc
+model CommercialDoc {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  transition    Transition[]
+  headers       Header[]
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// --Phase
+model Phase {
+  id          String  @id
+  idOrg       String  @map("idOrg")
+  idEtb       String  @map("idEtb")
+  reference   String
+  designation String?
+  relatedType String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  transition    Transition[]
+  headers       Header[]
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// --Transition
+model Transition {
+  id              String  @id
+  idOrg           String  @map("idOrg")
+  idEtb           String  @map("idEtb")
+  idOperation     String  @map("idOperation")
+  idCommercialDoc String  @map("idCommercialDoc")
+  idPhase         String  @map("idPhase")
+  reference       String
+  designation     String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  operation     Operation     @relation(fields: [idOperation], references: [id])
+  commercialDoc CommercialDoc @relation(fields: [idCommercialDoc], references: [id])
+  phase         Phase         @relation(fields: [idPhase], references: [id])
+}
+
+// --Header
+model Header {
+  id              String        @id
+  idOrg           String        @map("idOrg")
+  idEtb           String        @map("idEtb")
+  idClient        String?       @map("idClient")
+  idProvider      String?       @map("idProvider")
+  idContact       String?       @map("idContact")
+  codeOperation   String?       @default("UUU")
+  idCommercialDoc String?       @map("idCommercialDoc")
+  idPhase         String?       @map("idPhase")
+  idTax           String?       @map("idTax")
+  idDeposit       String?       @map("idDeposit")
+  reference       String
+  status          HeaderStatus?
+  docType         DocType
+  untaxedAmount   Float?
+  taxedAmount     Float?
+  headerGroup     String?
+  pickupAt        DateTime?
+
+  deliveryClientName String?
+  deliveryPhone      String?
+  deliveryEmail      String?
+
+  billingAddress  String? @map("billingAddress")
+  deliveryAddress String? @map("deliveryAddress")
+  note            String?
+  metadata        Json?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization   @relation(fields: [idOrg], references: [id])
+  establishment Establishment  @relation(fields: [idEtb], references: [id])
+  provider      Provider?      @relation(fields: [idProvider], references: [id])
+  client        Client?        @relation(fields: [idClient], references: [id])
+  contact       Contact?       @relation(fields: [idContact], references: [id])
+  commercialDoc CommercialDoc? @relation(fields: [idCommercialDoc], references: [id])
+  phase         Phase?         @relation(fields: [idPhase], references: [id])
+  tax           Tax?           @relation(fields: [idTax], references: [id])
+  deposit       Deposit?       @relation(fields: [idDeposit], references: [id])
+  delivery      Address?       @relation("Delivery", fields: [deliveryAddress], references: [id])
+  billing       Address?       @relation("Billing", fields: [billingAddress], references: [id])
+  regulations   Regulation[]
+  Movement      Movement[]
+  Ventilation   Ventilation[]
+}
+
+enum DocType {
+  QUOTE
+  ORDER
+  DELIVERY_ORDER
+  INVOICE
+  DEPO_TRANSFER
+}
+
+enum HeaderStatus {
+  DRAFT
+  PAID
+  UNPAID
+  CANCELLED
+  OVERDUE // Passed the payment date
+  REFUNDED
+  SENT
+  APPROVED
+}
+
+// --Movement
+model Movement {
+  id            String   @id
+  idOrg         String   @map("idOrg")
+  idEtb         String   @map("idEtb")
+  idHeader      String   @map("idHeader")
+  idArticle     String   @map("idArticle")
+  qty           Float
+  options       String[] @default([])
+  idUnit        String   @map("idUnit")
+  idTax         String?  @map("idTax")
+  idPricing     String?  @map("idPricing")
+  idDiscount    String?  @map("idDiscount")
+  idDeposit     String?  @map("idDeposit")
+  idLot         String?  @map("idLot")
+  untaxedAmount Float?
+  taxedAmount   Float?
+  codeOperation String?  @default("UUU")
+  metadata      Json?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization        Organization         @relation(fields: [idOrg], references: [id])
+  establishment       Establishment        @relation(fields: [idEtb], references: [id])
+  article             Article?             @relation("article", fields: [idArticle], references: [id])
+  lot                 Article?             @relation("parent", fields: [idLot], references: [id])
+  unit                Unit                 @relation(fields: [idUnit], references: [id])
+  tax                 Tax?                 @relation(fields: [idTax], references: [id])
+  pricing             Pricing?             @relation(fields: [idPricing], references: [id])
+  discount            Discount?            @relation(fields: [idDiscount], references: [id])
+  deposit             Deposit?             @relation(fields: [idDeposit], references: [id])
+  regulationMovements RegulationMovement[]
+  header              Header               @relation(fields: [idHeader], references: [id], onDelete: Cascade)
+}
+
+// --Regulation
+model Regulation {
+  id                   String              @id @default(cuid())
+  idHeader             String              @map("idHeader")
+  regulationProvider   RegulationProvider? @default(CASH)
+  regulationProviderId String? // e.g. Stripe session_id, cheque number, etc.
+  status               RegulationStatus?   @default(PAID)
+  amount               Float
+  currency             String?             @default("TND")
+  method               String? // e.g. 'card', 'twint', 'cheque', 'virement' using case : with stripe provider -> method = card
+  completedAt          DateTime?           @default(now())
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+
+  header    Header               @relation(fields: [idHeader], references: [id], onDelete: Cascade)
+  movements RegulationMovement[] // links to specific movements if needed
+}
+
+enum RegulationProvider {
+  STRIPE
+  TWINT
+  CHEQUE
+  BANK_TRANSFER
+  CASH
+  BITCOIN
+  KONNECT
+}
+
+enum RegulationStatus {
+  INITIATED
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model RegulationMovement {
+  id           String @id @default(cuid())
+  idRegulation String @map("idRegulation")
+  idMovement   String @map("idMovement")
+  amount       Float? // Amount paid toward this movement
+
+  regulation Regulation @relation(fields: [idRegulation], references: [id])
+  movement   Movement   @relation(fields: [idMovement], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+model Cart {
+  id            String        @id @default(cuid())
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [oidcId])
+
+  // metadata Json?
+  pickupTime String?
+  items      CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  qty       Int
+  idLot     String?
+  metadata  Json?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+}
+
+// --Ventilation
+model Ventilation {
+  id            String  @id
+  idOrg         String  @map("idOrg")
+  idEtb         String  @map("idEtb")
+  idMovement    String  @map("idMovement")
+  idHeader      String  @map("idHeader")
+  idStockpile   String? @map("idStockpile")
+  idArticle     String  @map("idArticle")
+  qty           Float
+  idUnit        String  @map("idUnit")
+  idTax         String? @map("idTax")
+  idDeposit     String? @map("idDeposit")
+  untaxedAmount Float?
+  taxedAmount   Float?
+  codeOperation String? @default("UUU")
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  article       Article?      @relation(fields: [idArticle], references: [id])
+  unit          Unit          @relation(fields: [idUnit], references: [id])
+  tax           Tax?          @relation(fields: [idTax], references: [id])
+  stockpile     Stockpile?    @relation(fields: [idStockpile], references: [id])
+  deposit       Deposit?      @relation(fields: [idDeposit], references: [id])
+  headerId      String?
+  header        Header?       @relation(fields: [headerId], references: [id], onDelete: Cascade)
+}
+
+// --UserDevice
+model UserDevice {
+  id String @unique @default(uuid())
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  userId String?
+  User   User?   @relation(fields: [userId], references: [oidcId])
+
+  clientId String?
+  Client   Client? @relation(fields: [clientId], references: [id])
+
+  token String @id @unique
+  ua    Json?
+}
+
+// --ArticleGarnish
+model Notifications {
+  id String @id @unique
+
+  userId String
+  User   User   @relation(fields: [userId], references: [oidcId])
+
+  t      DateTime @default(now())
+  isRead Boolean  @default(false)
+  data   Json
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  // idOrg String? @map("idOrg")
+  // idEtb String? @map("idEtb")
+
+  // organization  Organization?  @relation(fields: [idOrg], references: [id])
+  // establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// --Garnish
+model Garnish {
+  id               String           @id
+  idOrg            String           @map("idOrg")
+  idEtb            String           @map("idEtb")
+  title            String
+  isMultiple       Boolean?         @default(true)
+  options          String[]
+  articleGarnishes ArticleGarnish[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// --ArticleGarnish
+model ArticleGarnish {
+  id String? //TEMP, TO NOT REMOVE CURRENT DB
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+
+  idArticle String  @map("idArticle")
+  article   Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  idGarnish String
+  garnish   Garnish @relation(fields: [idGarnish], references: [id], onDelete: Cascade)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@id([idArticle, idGarnish])
+}
+
+// --ArticleDeposits
+model ArticleDeposits {
+  idOrg     String @map("idOrg")
+  idEtb     String @map("idEtb")
+  idArticle String @map("idArticle")
+  idDeposit String @map("idDeposit")
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  article       Article       @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  deposit       Deposit       @relation(fields: [idDeposit], references: [id])
+
+  @@id([idArticle, idDeposit])
+}
+
+// Dynamic customization section (e.g., "Color", "Waist Style")
+model ArticleCustomizeSection {
+  id          String             @id @default(cuid())
+  name        String? // "Color", "Waist Style"
+  type        CustomizationType? @default(TEXT)
+  description String?
+  sortIndex   Int                @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idArticle String  @map("idArticle")
+  article   Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  options ArticleCustomizeOption[]
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// Individual customization option (e.g., "Red", "V Neck")
+model ArticleCustomizeOption {
+  id          String             @id @default(cuid())
+  name        String? // "Red", "V Neck"
+  value       String // "red", "v-neck"
+  type        CustomizationType? @default(TEXT)
+  image       String?
+  description String?
+  sortIndex   Int                @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idSection String                   @map("idSection")
+  section   ArticleCustomizeSection? @relation(fields: [idSection], references: [id], onDelete: Cascade)
+
+  optionLinks ArticleCombinationLink[]
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+enum CustomizationType {
+  COLOR
+  TEXT
+  SIZE
+  NUMBER
+}
+
+model ArticleCombination {
+  id     String   @id @default(cuid())
+  images String[]
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idArticle String  @map("idArticle")
+  article   Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  optionLinks ArticleCombinationLink[]
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+model ArticleCombinationLink {
+  id            String             @id @default(cuid())
+  idCombination String
+  combination   ArticleCombination @relation(fields: [idCombination], references: [id], onDelete: Cascade)
+
+  idOption String
+  option   ArticleCustomizeOption @relation(fields: [idOption], references: [id], onDelete: Cascade)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idOrg         String        @map("idOrg")
+  idEtb         String        @map("idEtb")
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+}
+
+// ******************************************************  SETTINGS ******************************************************
+model Setting {
+  id        String    @id @default(cuid())
+  // Scope (null = global default)
+  idOrg     String?
+  idEtb     String?
+  // Namespaced key, e.g. "inventory.trackExpiry", "ui.theme" 
+  key       String
+  value     Json
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  // One value per key per scope; supports override chain (global → org → etb)
+  @@unique([idOrg, idEtb, key])
+  @@index([idOrg, idEtb])
+}
+
+model UserSetting {
+  id        String    @id @default(cuid())
+  userId    String
+  idOrg     String?
+  idEtb     String?
+  key       String // e.g. "ui.locale", "ui.darkMode"
+  value     Json
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  User          User           @relation(fields: [userId], references: [oidcId])
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  @@unique([userId, idOrg, idEtb, key])
+  @@index([idOrg, idEtb])
+}
+
+enum EntityType {
+  ARTICLE
+  CATEGORY
+  CLIENT
+  HEADER
+  MOVEMENT
+  DEPOSIT
+  LOCATION
+  CONTACT
+  PROVIDER
+  LOT_COMPOSITION
+  INVENTORY_HEADER
+  INVENTORY_MOVEMENT
+  PROJECT
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  MULTISELECT
+}
+
+model CustomField {
+  id         String     @id @default(cuid())
+  idOrg      String
+  idEtb      String? // null = applies to all ETBs in org (can be overridden per ETB)
+  entityType EntityType
+  key        String // e.g. "brand", "expiry_date"
+  label      String
+  dataType   FieldType
+  required   Boolean    @default(false)
+  options    Json? // for (MULTI)SELECT choices
+  validation Json? // e.g. { min: 0, max: 100, regex: "..." }
+  ui         Json? // ordering, width, group tabs, help text
+  active     Boolean?   @default(true)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization     Organization       @relation(fields: [idOrg], references: [id])
+  establishment    Establishment?     @relation(fields: [idEtb], references: [id])
+  CustomFieldValue CustomFieldValue[]
+
+  @@unique([idOrg, idEtb, entityType, key])
+  @@index([idOrg, idEtb, entityType])
+}
+
+model CustomFieldValue {
+  id         String     @id @default(cuid())
+  idOrg      String
+  idEtb      String?
+  entityType EntityType
+  entityId   String // e.g. articleId, invoiceId
+  fieldId    String
+  value      Json // store according to dataType
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  organization  Organization   @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  // One value per field per entity
+  @@unique([fieldId, entityType, entityId])
+  @@index([idOrg, idEtb, entityType, entityId])
+}
+
+enum ResetRule {
+  NEVER
+  YEARLY
+  MONTHLY
+  DAILY
+}
+
+model NumberSequence {
+  id         String     @id @default(cuid())
+  orgId      String
+  etbId      String
+  entityType EntityType // e.g., CATEGORY, ARTICLE, HEADER
+  series     String? // e.g. "ORDER", "INVOICE", "QUOTE"
+  pattern    String // e.g. "CMD-CLI-{YYYY}-{SEQ:5}"
+  resetRule  ResetRule  @default(NEVER)
+  nextSeq    Int        @default(1) // last used + 1
+  locked     Boolean    @default(false) // for tx-safe increments if you implement manual locks
+
+  lastResetAt DateTime?
+  periodKey   String?
+  timezone    String?
+  active      Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization  @relation(fields: [orgId], references: [id])
+  establishment Establishment @relation(fields: [etbId], references: [id])
+
+  @@unique([orgId, etbId, entityType, series])
+  @@index([orgId, etbId, entityType])
+}
+
+model IssuedReference {
+  id         String     @id @default(cuid())
+  orgId      String
+  etbId      String
+  entityType EntityType
+  series     String?
+  entityId   String
+  seqNumber  Int
+  reference  String
+  periodKey  String?
+  issuedAt   DateTime   @default(now())
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@unique([orgId, etbId, entityType, series, reference])
+  @@index([orgId, etbId, entityType, series, seqNumber])
+}
+
+// ******************************************************  END SETTINGS ****************************************************
+
+// ------------------------------------- Pointing
+// --Project
+model Project {
+  id            String         @id @unique
+  idOrg         String         @map("idOrg")
+  idEtb         String         @map("idEtb")
+  name          String
+  address       String?
+  description   String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        ProjectStatus?
+  coordinateGPS String?
+  isDeleted     Boolean        @default(false)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
+  pointings     Pointing[]
+  employees     Employee[]
+}
+
+enum ProjectRole {
+  EMPLOYEE
+  CHEIF
+  ADMIN
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  FINISHED
+}
+
+// --Employee
+model Employee {
+  id           String        @id @unique
+  idOrg        String        @map("idOrg")
+  idEtb        String        @map("idEtb")
+  firstName    String?
+  lastName     String?
+  email        String?       @unique
+  tel1         String
+  tel2         String?
+  BirthDay     DateTime?
+  address      String?
+  nationality  String?
+  post         String?
+  comment      String?
+  salary       Float?
+  cinPassp     String?
+  cnss         String?
+  isDeleted    Boolean       @default(false)
+  isDeclared   Boolean       @default(false)
+  createdBy    String?
+  deletedBy    String?
+  deletedAt    DateTime?
+  isFamilyHead Boolean       @default(false)
+  kids         Int?          @default(0)
+  familyStatus FamilyStatus?
+  role         EmployeeRole?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idProject     String?
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+  project       Project?       @relation(fields: [idProject], references: [id])
+  pointings     Pointing[]
+}
+
+enum FamilyStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+}
+
+enum EmployeeRole {
+  ADMIN
+  REG_USER
+  CHIEF
+  EMPLOYEE
+}
+
+// --Pointing
+model Pointing {
+  id         String   @id @unique
+  idOrg      String
+  idEtb      String
+  idProject  String
+  idEmployee String
+  date       DateTime
+  note       String?
+  salary     Float?
+  deposit    Float?   @default(0)
+  hours      WorkDay  @default(FULL)
+  extraHours Float    @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+  project       Project        @relation(fields: [idProject], references: [id])
+  employee      Employee       @relation(fields: [idEmployee], references: [id], onDelete: Restrict)
+}
+
+enum WorkDay {
+  FULL
+  HALF
+  NONE
+}
+
+// ************************************************ ECOMMERCE MODULE ************************************************
+// ----------------------------------------------
+// The Marketplace (Global Templates)
+// ----------------------------------------------
+
+model EcTemplate {
+  id           String   @id @unique
+  name         String // e.g. "Modern Dark", "Clean Retail"
+  description  String?
+  thumbnailUrl String? // Image for selection UI
+  images       String[] // Array of image URLs
+
+  // The default design configuration (CSS Variables, Fonts, Colors)
+  defaultConfig Json @default("{}")
+
+  // --- NEW: The Global Layout (Header & Footer) ---
+  // This stores the Puck JSON for the "header" and "footer" zones
+  defaultGlobalLayout Json? @default("{}")
+
+  // The default pages JSON structure (Pre-filled Puck content for Home, About, etc.)
+  // We store this as a big JSON blob to easily clone it.
+  defaultPages Json @default("[]")
+
+  createdAt DateTime @default(now())
+}
+
+// ----------------------------------------------
+// The Tenant's Working Copy (EcTheme)
+// ----------------------------------------------
+
+model EcTheme {
+  id   String @id @default(cuid())
+  name String // User-defined name, e.g., "My Custom Summer Theme"
+
+  isActive Boolean @default(false) // THE SWITCH: Only one can be true per establishment
+
+  // The Design Configuration (Mutable)
+  // Copied from EcTemplate.defaultConfig, then editable by user
+  config Json @default("{}")
+
+  // Relationships
+  idOrg         String
+  idEtb         String
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  // Stores the Puck JSON for Header and Footer ONLY
+  globalLayout Json? @default("{}")
+
+  // The pages belonging to this specific theme version
+  pages EcPage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ensure only ONE active theme per establishment
+  @@unique([idEtb, isActive])
+}
+
+// ----------------------------------------------
+// The Pages (Puck Content)
+// ----------------------------------------------
+
+model EcPage {
+  id String @id @default(cuid())
+
+  title        String
+  // Stores dynamic patterns like "/" or "/product/:id"
+  routePattern String
+
+  // The Puck JSON Tree (Content)
+  data Json @default("{}")
+
+  // --- SEO Fields ---
+  // A brief description for search results (max ~160 chars)
+  metaDescription String?
+
+  // Open Graph Image (for nice previews when shared on Facebook/Twitter)
+  metaImage String?
+
+  // Prevent search engines from indexing this page (e.g., 'Thank You' pages)
+  noIndex Boolean? @default(false)
+
+  // Status
+  published Boolean @default(false)
+
+  // Relationships
+  themeId       String
+  idOrg         String
+  idEtb         String
+  theme         EcTheme        @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --BlogPost
+model BlogPost {
+  id                 String    @id @unique
+  idOrg              String    @map("idOrg")
+  idEtb              String    @map("idEtb")
+  idArticle          String?   @map("idArticle")
+  idBlogPostCategory String?   @map("idBlogPostCategory")
+  title              String
+  slug               String    @unique
+  description        String?
+  shortDescription   String?
+  cover              String?
+  publishedAt        DateTime?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  article          Article?          @relation(fields: [idArticle], references: [id])
+  organization     Organization?     @relation(fields: [idOrg], references: [id])
+  establishment    Establishment?    @relation(fields: [idEtb], references: [id])
+  blogPostCategory BlogPostCategory? @relation(fields: [idBlogPostCategory], references: [id])
+
+  blogPostRelatedArticles BlogPostRelatedArticles[]
+}
+
+model BlogPostCategory {
+  id               String    @id @unique
+  idOrg            String    @map("idOrg")
+  idEtb            String    @map("idEtb")
+  designation      String
+  slug             String    @unique
+  description      String?
+  shortDescription String?
+  createdAt        DateTime? @default(now())
+  updatedAt        DateTime? @default(now()) @updatedAt
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  blogPosts BlogPost[]
+}
+
+model BlogPostRelatedArticles {
+  id         String @id @unique
+  idOrg      String @map("idOrg")
+  idEtb      String @map("idEtb")
+  idBlogPost String @map("idBlogPost")
+  idArticle  String @map("idArticle")
+
+  blogPost      BlogPost?      @relation(fields: [idBlogPost], references: [id])
+  article       Article?       @relation(fields: [idArticle], references: [id])
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// ************************************************ END ECOMMERCE MODULE ************************************************
+
+// ************************************************ SCHOOLS MANAGEMENT ************************************************
+// courses            ===>	Core table defining each course (Table Article)
+// course_sections	  ===>	Divides a course into modules or chapters
+// lessons	          ===>	Actual videos, PDFs, or live sessions in a course section
+// enrollments	      ===>	Links students to courses they enrolled in
+// quizzes, questions, answers, user_answers	===>	Handles assessments
+// assignments, submissions	===>	For homework or projects
+// certificates	      ===>	Issued upon course completion
+// reviews	Feedback and ratings from students
+// notifications, messages	Platform messaging and alerts
+
+// --Lessons
+// model Courses {    // Article
+//   id            String   @id @unique
+//   idOrg         String
+//   idEtb         String
+//   title         String
+//   slug          String
+//   description   String?
+//   level         String? // (ENUM: 'beginner', 'intermediate', 'advanced')
+//   idTrainer String
+//   videoUrl      String?
+//   liveSessionId String?
+//   courseId      String
+//   createdAt     DateTime
+
+//   organization  Organization?  @relation(fields: [idOrg], references: [id])
+//   establishment Establishment? @relation(fields: [idEtb], references: [id])
+// }
+
+// --ArticleTrainers
+model ArticleTrainer {
+  idOrg     String
+  idEtb     String
+  idArticle String
+  idTrainer String
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  article Article    @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  trainer SchoolUser @relation(fields: [idTrainer], references: [id], onDelete: Cascade)
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  @@id([idArticle, idTrainer])
+}
+
+// --CourseSection
+model CourseSection {
+  id          String  @id @unique
+  idOrg       String
+  idEtb       String
+  title       String
+  description String?
+  position    Int?    @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idArticle String
+  article   Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+  lessons       Lesson[]
+  quizzes       Quiz[]
+}
+
+// --Lesson
+model Lesson {
+  id              String     @id @unique
+  idOrg           String
+  idEtb           String
+  idCourseSection String
+  title           String?
+  type            LessonType @default(ONLINE)
+  description     String?
+  contentUrl      String?
+  duration        Float?
+  position        Int?       @default(0)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  medias        Media[]
+  courseSection CourseSection  @relation(fields: [idCourseSection], references: [id])
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+  quizzes       Quiz[]
+}
+
+enum LessonType {
+  ONLINE
+  OFFLINE
+  OTHER
+}
+
+// --Quiz
+model Quiz {
+  id                     String  @id @unique
+  idOrg                  String
+  idEtb                  String
+  title                  String?
+  description            String?
+  durationMinutes        Float?
+  passingScorePercentage Float?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idLesson String?
+  lesson   Lesson? @relation(fields: [idLesson], references: [id], onDelete: Cascade)
+
+  idArticle String?
+  article   Article? @relation(fields: [idArticle], references: [id])
+
+  idCourseSection String?
+  courseSection   CourseSection? @relation(fields: [idCourseSection], references: [id], onDelete: Cascade)
+
+  organization    Organization?    @relation(fields: [idOrg], references: [id])
+  establishment   Establishment?   @relation(fields: [idEtb], references: [id])
+  questions       QuizQuestion[]
+  answers         QuizAnswer[]
+  quizUserAnswers QuizUserAnswer[]
+}
+
+// --QuizQuestion
+model QuizQuestion {
+  id     String       @id @unique
+  idOrg  String
+  idEtb  String
+  idQuiz String
+  text   String?
+  type   QuestionType
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  quiz            Quiz             @relation(fields: [idQuiz], references: [id], onDelete: Cascade)
+  organization    Organization?    @relation(fields: [idOrg], references: [id])
+  establishment   Establishment?   @relation(fields: [idEtb], references: [id])
+  answers         QuizAnswer[]
+  quizUserAnswers QuizUserAnswer[]
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+}
+
+enum CustomerRole {
+  CUSTOMER
+  ADMIN
+  TRAINER
+}
+
+// --SchoolUser
+model SchoolUser {
+  id         String       @id @unique
+  idClient   String?
+  client     Client?      @relation(fields: [idClient], references: [id])
+  firstName  String?
+  lastName   String?
+  personalId String?
+  role       CustomerRole @default(CUSTOMER)
+
+  idOrg String
+  idEtb String
+
+  description String?
+  signature   String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  organization        Organization?            @relation(fields: [idOrg], references: [id])
+  establishment       Establishment?           @relation(fields: [idEtb], references: [id])
+  consultationTrainer ConsultationManagement[]
+  articleTrainers     ArticleTrainer[]
+}
+
+// --QuizAnswer
+model QuizAnswer {
+  id         String   @id @unique
+  idOrg      String
+  idEtb      String
+  idQuiz     String
+  idQuestion String
+  text       String?
+  isCorrect  Boolean? @default(true)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  quiz            Quiz             @relation(fields: [idQuiz], references: [id], onDelete: Cascade)
+  question        QuizQuestion     @relation(fields: [idQuestion], references: [id], onDelete: Cascade)
+  organization    Organization?    @relation(fields: [idOrg], references: [id])
+  establishment   Establishment?   @relation(fields: [idEtb], references: [id])
+  quizUserAnswers QuizUserAnswer[]
+}
+
+// --QuizUserAnswer
+model QuizUserAnswer {
+  id           String   @id @unique
+  idOrg        String
+  idEtb        String
+  idUser       String
+  idQuiz       String
+  idQuestion   String
+  idAnswer     String
+  textResponse String?
+  submittedAt  DateTime @default(now())
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  quiz          Quiz           @relation(fields: [idQuiz], references: [id], onDelete: Cascade)
+  question      QuizQuestion   @relation(fields: [idQuestion], references: [id], onDelete: Cascade)
+  answer        QuizAnswer     @relation(fields: [idAnswer], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [idUser], references: [oidcId], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// --Assignment
+model Assignment {
+  id          String   @id @unique
+  idOrg       String
+  idEtb       String
+  idArticle   String
+  title       String?
+  description String?
+  deadline    DateTime
+  files       String[] @default([])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  article       Article        @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  submissions AssignmentSubmission[]
+}
+
+// --AssignmentSubmission
+model AssignmentSubmission {
+  id           String   @id @unique
+  idOrg        String
+  idEtb        String
+  idAssignment String
+  idUser       String
+  submittedAt  DateTime @default(now())
+  files        String[] @default([])
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  assignment    Assignment     @relation(fields: [idAssignment], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [idUser], references: [oidcId])
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// --Certificate
+model Certificate {
+  id             String   @id @unique
+  idOrg          String
+  idEtb          String
+  idUser         String
+  idCourse       String
+  certificateUrl String
+  issuedAt       DateTime
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  user          User           @relation(fields: [idUser], references: [oidcId], onDelete: Cascade)
+  course        Article        @relation(fields: [idCourse], references: [id], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  enrollments Enrollment[]
+}
+
+// --Enrollment
+model Enrollment {
+  id                 String    @id @unique
+  idOrg              String
+  idEtb              String
+  idClient           String
+  idCourse           String
+  enrolledAt         DateTime  @default(now())
+  progressPercentage Int?
+  completedAt        DateTime?
+  certificateId      String?
+
+  status EnrollmentStatus @default(PENDING)
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  client        Client         @relation(fields: [idClient], references: [id], onDelete: Cascade)
+  course        Article        @relation(fields: [idCourse], references: [id], onDelete: Cascade)
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+  certificate   Certificate?   @relation(fields: [certificateId], references: [id])
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ENROLLED
+  CANCELLED
+}
+
+// --TrainingSchedule
+model TrainingSchedule {
+  id        String  @id @default(uuid())
+  idArticle String
+  article   Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  dayNumber    Int // e.g., 1 for Day 1, 2 for Day 2 ===> THIS IS WILL USED FOR EVENT TEMPLATE 
+  scheduleDate DateTime // full calendar date of this day
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  sessions TrainingSession[]
+
+  idOrg         String
+  idEtb         String
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// --TrainingSession
+model TrainingSession {
+  id         String           @id @default(uuid())
+  idSchedule String
+  schedule   TrainingSchedule @relation(fields: [idSchedule], references: [id], onDelete: Cascade)
+
+  fromTime String? // start time
+  toTime   String? // end time
+  topic    String? // optional
+  location String? // optional
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  idOrg         String
+  idEtb         String
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+// --ConsultationManagement
+model ConsultationManagement {
+  id               String             @id @default(uuid())
+  idOrg            String
+  idEtb            String
+  idArticle        String
+  idTrainer        String?
+  idClient         String?
+  startedAt        DateTime?
+  endedAt          DateTime?
+  clientName       String?
+  clientTel        String?
+  clientEmail      String?
+  shortDescription String?
+  status           ConsultationStatus @default(PENDING)
+  consultationUrl  String?
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  trainer SchoolUser? @relation(fields: [idTrainer], references: [id], onDelete: Cascade)
+  client  Client?     @relation(fields: [idClient], references: [id], onDelete: Cascade)
+  article Article     @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+}
+
+enum ConsultationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// ===================================
+// JOB ( emails / notifications / marketing.. )
+// ===================================
+enum JobType {
+  SESSION_REMINDER
+  ENROLLMENT_CONFIRMATION
+  MARKETING_EMAIL
+}
+
+// Define the lifecycle status of a job.
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id     String    @id @default(cuid())
+  type   JobType
+  status JobStatus @default(PENDING)
+
+  idOrg String
+  idEtb String
+
+  // --- The flexible payload ---
+  // e.g., { sessionId: "..." } or { campaignId: "...", templateId: "..." }
+  payload Json
+
+  // --- Scheduling and Status Tracking ---
+  scheduledAt DateTime? @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  error       String? // Store the last error message for debugging
+
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  completedAt DateTime?
+
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  @@map("jobs")
+}
+
+// ===================================
+// CUSTOMER SUPPORT
+// ===================================
+
+/// The central model for any support interaction (ticket, chat, etc.).
+model SupportConversation {
+  id          String   @id @default(cuid())
+  subject     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdById String
+  createdBy   User?  @relation(fields: [createdById], references: [oidcId])
+
+  // Status and Priority
+  status   SupportConversationStatus @default(OPEN)
+  priority SupportPriority           @default(MEDIUM)
+
+  // Timestamps for SLA tracking
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+
+  // Categorization
+  categoryId String?
+  category   SupportTicketCategory? @relation(fields: [categoryId], references: [id])
+
+  // Relations to other models
+  messages    SupportMessage[]
+  attachments Media[]
+  csatSurvey  SupportCsatSurvey?
+
+  idOrg         String
+  idEtb         String
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  @@map("support_conversations")
+}
+
+enum SupportConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum SupportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model SupportMessage {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  senderId String
+  sender   User?  @relation(fields: [senderId], references: [oidcId])
+
+  conversationId String
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // senderType SupportMessageSenderType @default(CUSTOMER)
+
+  attachments Media[]
+
+  @@map("support_messages")
+}
+
+enum SupportMessageSenderType {
+  CUSTOMER
+  AGENT
+}
+
+/// Categorizes conversations for better routing and analytics.
+model SupportTicketCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  color       String? // Hex code for UI display
+
+  // Relations
+  conversations         SupportConversation[]
+  knowledgeBaseArticles KnowledgeBaseArticle[]
+
+  @@map("support_ticket_categories")
+}
+
+model SupportCsatSurvey {
+  id        String   @id @default(cuid())
+  rating    Int // e.g., 1-5 stars
+  comment   String? // Optional feedback
+  createdAt DateTime @default(now())
+
+  // Links the survey to a specific conversation
+  conversationId String              @unique
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  idOrg         String
+  idEtb         String
+  organization  Organization?  @relation(fields: [idOrg], references: [id])
+  establishment Establishment? @relation(fields: [idEtb], references: [id])
+
+  @@map("csat_surveys")
+}
+
+model KnowledgeBaseArticle {
+  id        String          @id @default(cuid())
+  title     String
+  slug      String          @unique // For clean URLs, e.g., /help/how-to-reset-password
+  content   String // Markdown or rich text
+  status    KBArticleStatus @default(DRAFT)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  categoryId String?
+  category   SupportTicketCategory? @relation(fields: [categoryId], references: [id])
+
+  @@map("knowledge_base_articles")
+}
+
+enum KBArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
