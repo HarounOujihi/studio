@@ -21,8 +21,9 @@ type JWTPayload = {
 };
 
 interface CreateOrganizationBody {
-  organizationName: string;
-  establishmentName?: string;
+  shopName: string;
+  slogan?: string;
+  logo?: string;
   idCurrency: string;
 }
 
@@ -53,9 +54,9 @@ export async function POST(request: Request) {
     const body = (await request.json()) as CreateOrganizationBody;
 
     // Validate required fields
-    if (!body.organizationName || body.organizationName.trim() === "") {
+    if (!body.shopName || body.shopName.trim() === "") {
       return NextResponse.json(
-        { error: "organizationName is required" },
+        { error: "shopName is required" },
         { status: 400 }
       );
     }
@@ -67,8 +68,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const orgName = body.organizationName.trim();
-    const etbName = body.establishmentName?.trim() || orgName; // Default to org name if not provided
+    const shopName = body.shopName.trim();
+    const slogan = body.slogan?.trim() || null;
+    const logo = body.logo?.trim() || null;
 
     // Get all existing organization IDs to ensure uniqueness
     const existingOrgs = await prisma.organization.findMany({
@@ -78,9 +80,10 @@ export async function POST(request: Request) {
     const existingOrgIds = existingOrgs.map((o) => o.id);
     const existingOrgRefs = existingOrgs.map((o) => o.reference);
 
-    // Generate unique org ID and reference
-    const orgId = generateUniqueId(orgName, existingOrgIds);
-    const orgRef = generateUniqueId(orgName, existingOrgRefs);
+    // Generate unique org ID with "org-" prefix and reference
+    const shopSlug = slugify(shopName);
+    const orgId = generateUniqueId(shopName, existingOrgIds, "org");
+    const orgRef = generateUniqueId(shopName, existingOrgRefs);
 
     // Get all existing establishment IDs to ensure uniqueness
     const existingEtabs = await prisma.establishment.findMany({
@@ -91,21 +94,22 @@ export async function POST(request: Request) {
     const existingEtbRefs = existingEtabs.map((e) => e.reference);
 
     // Generate unique establishment ID and reference with new format
-    const etbId = generateUniqueId(etbName, existingEtbIds, "etb");
-    const etbRef = generateUniqueId(etbName, existingEtbRefs);
+    const etbId = generateUniqueId(shopName, existingEtbIds, "etb");
+    const etbRef = generateUniqueId(shopName, existingEtbRefs);
 
     // Generate deposit and unit IDs using nanoid
     const depoId = `depo-${nanoid(10)}`;
     const unitId = `unit-${nanoid(10)}`;
 
     // Generate formatted references for org and etb
-    const orgFormattedRef = generateOrganizationReference(orgName);
-    const etbFormattedRef = generateEstablishmentReference(etbName);
+    const orgFormattedRef = generateOrganizationReference(shopName);
+    const etbFormattedRef = generateEstablishmentReference(shopName);
 
     console.log("Creating organization with data:", {
       userId,
-      orgName,
-      etbName,
+      shopName,
+      slogan,
+      logo,
       idCurrency: body.idCurrency,
       orgId,
       etbId,
@@ -118,7 +122,8 @@ export async function POST(request: Request) {
         data: {
           id: orgId,
           reference: orgFormattedRef,
-          name: orgName,
+          name: shopName,
+          slogan,
           active: true,
           phones: [],
           emails: [],
@@ -131,7 +136,8 @@ export async function POST(request: Request) {
           id: etbId,
           idOrg: orgId,
           reference: etbFormattedRef,
-          designation: etbName,
+          designation: shopName,
+          logo,
           idCurrency: body.idCurrency,
           domain: "BUSINESS",
           isDefault: true,

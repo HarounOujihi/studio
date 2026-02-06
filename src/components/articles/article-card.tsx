@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Clock, Box, Image as ImageIcon } from "lucide-react";
-import { CDN_BASE_URL } from "@/lib/config";
+import { S3_HOST } from "@/lib/config";
 import { ArticleListItem } from "@/lib/types";
 
 interface ArticleCardProps {
@@ -61,7 +61,7 @@ export function ArticleCard({ article, onClick }: ArticleCardProps) {
             <img
               src={
                 article.media && article.media !== ""
-                  ? `${CDN_BASE_URL}/${article.media}`
+                  ? `${S3_HOST}/${article.media}`
                   : `/placeholder.png`
               }
               alt={article.designation || article.reference}

@@ -16,7 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
 import { ArticleCard } from "@/components/articles/article-card";
-import { CDN_BASE_URL } from "@/lib/config";
+import { S3_HOST } from "@/lib/config";
 import { PaginationData, ArticleListItem } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -279,7 +279,7 @@ export default function ArticleListItemsAdminPage() {
                                 {article.media && article.media !== "" ? (
                                   <div className="w-10 h-10 rounded overflow-hidden bg-muted flex-shrink-0">
                                     <img
-                                      src={`${CDN_BASE_URL}/${article.media}`}
+                                      src={`${S3_HOST}/${article.media}`}
                                       alt={
                                         article.designation || article.reference
                                       }

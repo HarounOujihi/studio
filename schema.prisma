@@ -203,6 +203,7 @@ model Organization {
 
   ecPages  EcPage[]
   ecThemes EcTheme[]
+  workingHours  WorkingHour[] 
 }
 
 // --Establishment
@@ -215,6 +216,11 @@ model Establishment {
   domain      EstablishmentDomain? @default(BUSINESS)
   isDefault   Boolean?             @default(false)
   isHidden    Boolean?             @default(false)
+  logo        String?
+  slogan      String?
+  phone       String?
+  email       String?
+  website     String?
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @default(now()) @updatedAt
@@ -297,6 +303,34 @@ model Establishment {
 
   ecPages  EcPage[]
   ecThemes EcTheme[]
+  workingHours  WorkingHour[]  
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model WorkingHour {
+  id             String      @id @default(uuid())
+  idOrg       String      @map("idOrg")
+  idEtb       String      @map("idEtb")
+
+  dayOfWeek      DayOfWeek   // 0-6 or Mon-Sun
+  openTime       String     // Stored as "HH:mm" e.g., "09:00" 
+  closeTime      String     // Stored as "HH:mm" e.g., "17:00"
+  isClosed       Boolean    @default(false) // Handles "Closed" days explicitly
+
+  
+  organization       Organization        @relation(fields: [idOrg], references: [id])
+  establishment      Establishment       @relation(fields: [idEtb], references: [id])
+
+  @@unique([idEtb, dayOfWeek]) // Prevents duplicate entries for Monday
 }
 
 // --Deposit

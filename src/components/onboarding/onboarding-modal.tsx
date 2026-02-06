@@ -1,7 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
 import { toast } from "sonner";
-import { Building2, Store, Loader2, DollarSign } from "lucide-react";
-import {
-  generateOrganizationReference,
-  generateEstablishmentReference,
-  slugify,
-} from "@/lib/utils/slugify";
+import { getCdnUrl } from "@/lib/config";
+import { Building2, Loader2, DollarSign, Quote, Upload, X } from "lucide-react";
+import Image from "next/image";
 
 interface Currency {
   id: string;
@@ -35,10 +32,11 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [organizationName, setOrganizationName] = useState("");
-  const [establishmentName, setEstablishmentName] = useState("");
+  const [shopName, setShopName] = useState("");
+  const [slogan, setSlogan] = useState("");
+  const [logoPath, setLogoPath] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
   const [idCurrency, setIdCurrency] = useState("");
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [currenciesLoading, setCurrenciesLoading] = useState(true);
@@ -72,6 +70,55 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
     fetchCurrencies();
   }, []);
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    setLogoUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("orgId", "temp"); // Will be moved to actual org after creation
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      // Handle both single file and multiple files response formats
+      const uploadedFile = data.files?.[0] || data.file;
+      setLogoPath(uploadedFile?.key || "");
+      toast.success("Logo uploaded successfully");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoPath("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -83,8 +130,9 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          organizationName,
-          establishmentName: establishmentName || undefined,
+          shopName,
+          slogan,
+          logo: logoPath || undefined,
           idCurrency,
         }),
       });
@@ -95,7 +143,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
       }
 
       const data = await response.json();
-      toast.success("Organization created successfully!");
+      toast.success("Organization created successfully!", data);
 
       // Call onComplete callback
       onComplete?.();
@@ -116,22 +164,6 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
     }
   };
 
-  const orgSlug = organizationName ? slugify(organizationName) : "";
-  const etbSlug =
-    establishmentName || organizationName
-      ? slugify(establishmentName || organizationName)
-      : "";
-  const orgRef = organizationName
-    ? generateOrganizationReference(organizationName)
-    : "";
-  const etbRef =
-    establishmentName || organizationName
-      ? generateEstablishmentReference(establishmentName || organizationName)
-      : "";
-
-  const isValid =
-    organizationName.trim() !== "" && idCurrency !== "" && !isLoading;
-
   const currencyOptions = currencies.map((c) => ({
     value: c.id,
     label: `${c.designation} (${c.symbol})`,
@@ -141,137 +173,141 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   return (
     <Dialog open={open} modal>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <div>
-              <DialogTitle>Welcome to Sawi Studio</DialogTitle>
-              <DialogDescription>
-                Set up your organization to get started
-              </DialogDescription>
-            </div>
+          <div>
+            <DialogTitle>Welcome to Sawi Studio</DialogTitle>
+            <DialogDescription>
+              Set up your shop to get started
+            </DialogDescription>
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Organization Name */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="organizationName"
-              className="flex items-center gap-2"
-            >
-              <Building2 className="h-4 w-4" />
-              Organization Name *
-            </Label>
-            <Input
-              id="organizationName"
-              placeholder="e.g., My Company"
-              value={organizationName}
-              onChange={(e) => setOrganizationName(e.target.value)}
-              disabled={isLoading}
-              autoFocus
-            />
-          </div>
-
-          {/* Establishment Name */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="establishmentName"
-              className="flex items-center gap-2"
-            >
-              <Store className="h-4 w-4" />
-              Establishment Name
-            </Label>
-            <Input
-              id="establishmentName"
-              placeholder="e.g., Main Store (optional)"
-              value={establishmentName}
-              onChange={(e) => setEstablishmentName(e.target.value)}
-              disabled={isLoading}
-            />
-            <p className="text-xs text-muted-foreground">
-              Leave empty to use the organization name
-            </p>
-          </div>
-
-          {/* Currency Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="currency" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Currency *
-            </Label>
-            <Combobox
-              options={currencyOptions}
-              value={idCurrency}
-              onChange={setIdCurrency}
-              placeholder="Select a currency"
-              searchPlaceholder="Search currencies..."
-              emptyText="No currencies found."
-              disabled={isLoading || currenciesLoading}
-            />
-          </div>
-
-          {/* Preview */}
-          {(orgSlug || etbSlug || idCurrency) && (
-            <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
-              <p className="text-sm font-medium">Preview:</p>
-              <div className="text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Organization Ref:
-                  </span>
-                  <span className="font-mono">{orgRef || "..."}</span>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {/* Left column - Logo/Branding preview */}
+            <div className="space-y-4">
+              <Label className="hidden lg:block">Logo</Label>
+              {logoPath ? (
+                <div className="relative aspect-square rounded-xl border-2 border-dashed border-muted-foreground/20 overflow-hidden bg-muted/30">
+                  <img
+                    src={getCdnUrl(logoPath) || ""}
+                    alt="Logo preview"
+                    className="w-full h-full object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    disabled={isLoading}
+                    className="absolute top-2 right-2 p-1.5 bg-background/90 backdrop-blur rounded-lg shadow-sm hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Establishment Ref:
-                  </span>
-                  <span className="font-mono">{etbRef || "..."}</span>
+              ) : (
+                <div className="relative aspect-square rounded-xl border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center hover:border-primary/50 transition-colors bg-muted/20">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={isLoading || logoUploading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {logoUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Upload className="h-10 w-10 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground text-center px-2">
+                        Upload Logo
+                      </p>
+                      <p className="text-xs text-muted-foreground/60 text-center px-2">
+                        Max 5MB
+                      </p>
+                    </>
+                  )}
                 </div>
-                {idCurrency && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      Currency:
-                    </span>
-                    <span className="font-mono">
-                      {
-                        currencies.find((c) => c.id === idCurrency)
-                          ?.designation || "..."
-                      }{" "}
-                      (
-                      {currencies.find((c) => c.id === idCurrency)?.symbol ||
-                        "..."}
-                      )
-                    </span>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground pt-2 border-t">
-                A default deposit and unit will be created automatically
-              </p>
+              )}
             </div>
-          )}
+
+            {/* Right column - Form fields */}
+            <div className="sm:col-span-2 space-y-5">
+              {/* Shop Name */}
+              <div className="space-y-2">
+                <Label htmlFor="shopName" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Shop Name *
+                </Label>
+                <Input
+                  id="shopName"
+                  placeholder="e.g., My Shop"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  disabled={isLoading}
+                  autoFocus
+                />
+              </div>
+
+              {/* Slogan */}
+              <div className="space-y-2">
+                <Label htmlFor="slogan" className="flex items-center gap-2">
+                  <Quote className="h-4 w-4" />
+                  Slogan
+                </Label>
+                <Input
+                  id="slogan"
+                  placeholder="e.g., Your tagline here"
+                  value={slogan}
+                  onChange={(e) => setSlogan(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Currency Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="currency" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Currency *
+                </Label>
+                <Combobox
+                  options={currencyOptions}
+                  value={idCurrency}
+                  onChange={setIdCurrency}
+                  placeholder="Select a currency"
+                  searchPlaceholder="Search currencies..."
+                  emptyText="No currencies found."
+                  disabled={isLoading || currenciesLoading}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Submit Button */}
-          <Button type="submit" className="w-full" disabled={!isValid}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Building2 className="mr-2 h-4 w-4" />
-                Create Organization
-              </>
-            )}
-          </Button>
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={
+                shopName.trim() === "" || idCurrency === "" || isLoading
+              }
+              className="w-full"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Building2 className="mr-2 h-4 w-4" />
+                  Create Shop
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
