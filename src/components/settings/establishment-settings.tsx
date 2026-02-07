@@ -24,7 +24,6 @@ import { currentEtbIdAtom } from "@/lib/store/auth-oidc";
 
 interface Address {
   street?: string;
-  street2?: string;
   city?: string;
   state?: string;
   zipCode?: string;
@@ -73,7 +72,6 @@ export function EstablishmentSettings({
 
   // Address state
   const [street, setStreet] = useState("");
-  const [street2, setStreet2] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
@@ -81,52 +79,48 @@ export function EstablishmentSettings({
   const [mapLat, setMapLat] = useState(36.8065); // Default to Tunis
   const [mapLng, setMapLng] = useState(10.1815);
 
-  const fetchEstablishment = useCallback(
-    async (etbId: string) => {
-      if (!etbId) {
-        toast.error("No establishment selected");
-        setIsLoading(false);
-        return;
-      }
+  const fetchEstablishment = useCallback(async (etbId: string) => {
+    if (!etbId) {
+      toast.error("No establishment selected");
+      setIsLoading(false);
+      return;
+    }
 
-      try {
-        const response = await fetch(`/api/establishment?etbId=${etbId}`);
-        if (!response.ok) throw new Error("Failed to fetch establishment");
+    try {
+      const response = await fetch(`/api/establishment?etbId=${etbId}`);
+      if (!response.ok) throw new Error("Failed to fetch establishment");
 
-        const data = await response.json();
-        const est = data.establishment;
+      const data = await response.json();
+      const est = data.establishment;
 
-        setEstablishment(est);
-        setDesignation(est.designation || "");
-        setSlogan(est.slogan || "");
-        setLogo(est.logo || "");
-        setPhone(est.phone || "");
-        setEmail(est.email || "");
-        setWebsite(est.website || "");
+      setEstablishment(est);
+      setDesignation(est.designation || "");
+      setSlogan(est.slogan || "");
+      setLogo(est.logo || "");
+      setPhone(est.phone || "");
+      setEmail(est.email || "");
+      setWebsite(est.website || "");
 
-        // Get address from address relation
-        if (est.address) {
-          const addr = est.address;
-          setStreet(addr.street || "");
-          setStreet2(addr.street2 || "");
-          setCity(addr.city || "");
-          setState(addr.state || "");
-          setZipCode(addr.zipCode || "");
-          setCountry(addr.country || "");
-          if (addr.lat && addr.lng) {
-            setMapLat(parseFloat(addr.lat));
-            setMapLng(parseFloat(addr.lng));
-          }
+      // Get address from address relation
+      if (est.address) {
+        const addr = est.address;
+        setStreet(addr.street || "");
+        setCity(addr.city || "");
+        setState(addr.state || "");
+        setZipCode(addr.zipCode || "");
+        setCountry(addr.country || "");
+        if (addr.lat && addr.lng) {
+          setMapLat(parseFloat(addr.lat));
+          setMapLng(parseFloat(addr.lng));
         }
-      } catch (error) {
-        console.error("Error fetching establishment:", error);
-        toast.error("Failed to load establishment data");
-      } finally {
-        setIsLoading(false);
       }
-    },
-    []
-  );
+    } catch (error) {
+      console.error("Error fetching establishment:", error);
+      toast.error("Failed to load establishment data");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (etbId) {
@@ -199,7 +193,6 @@ export function EstablishmentSettings({
     try {
       const address: Address = {
         street: street || undefined,
-        street2: street2 || undefined,
         city: city || undefined,
         state: state || undefined,
         zipCode: zipCode || undefined,
@@ -411,17 +404,6 @@ export function EstablishmentSettings({
               onChange={(e) => setStreet(e.target.value)}
               disabled={isSaving}
               placeholder="123 Main Street"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="street2">Street Address Line 2 (Optional)</Label>
-            <Input
-              id="street2"
-              value={street2}
-              onChange={(e) => setStreet2(e.target.value)}
-              disabled={isSaving}
-              placeholder="Apartment, suite, etc."
             />
           </div>
 
