@@ -1,25 +1,20 @@
-import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft, FolderOpen } from "lucide-react";
-import Link from "next/link";
+import { EstablishmentSettings } from "@/components/settings/establishment-settings";
+import { Settings } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <div className="max-w-md text-center space-y-6">
-        <div className="rounded-full bg-muted p-6">
-          <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground" />
+    <div className="container max-w-4xl lg:py-8">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Settings className="h-8 w-8" />
+          <h1 className="text-3xl font-bold">Settings</h1>
         </div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Configure your application settings</p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild variant="default">
-            <Link href="/articles">
-              <Home className="mr-2 h-4 w-4" />
-              Go to Articles
-            </Link>
-          </Button>
-        </div>
+        <p className="text-muted-foreground">
+          Manage your establishment information and preferences
+        </p>
       </div>
+
+      <EstablishmentSettings />
     </div>
   );
 }

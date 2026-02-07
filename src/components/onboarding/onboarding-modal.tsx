@@ -16,7 +16,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { toast } from "sonner";
 import { getCdnUrl } from "@/lib/config";
 import { Building2, Loader2, DollarSign, Quote, Upload, X } from "lucide-react";
-import Image from "next/image";
+// import Image from "next/image";
 
 interface Currency {
   id: string;

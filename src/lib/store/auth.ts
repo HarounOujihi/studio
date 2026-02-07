@@ -1,5 +1,27 @@
 import { atom } from "jotai";
 
+// Establishment details for settings completion check
+export interface EstablishmentDetails {
+  id: string;
+  designation: string | null;
+  slogan: string | null;
+  logo: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+}
+
+export const establishmentDetailsAtom = atom<EstablishmentDetails | null>(null);
+
+// Derived atom to check if settings are incomplete
+export const settingsIncompleteAtom = atom((get) => {
+  const details = get(establishmentDetailsAtom);
+  // if (!details) return false;
+
+  // Check if key settings are missing
+  return !details || !details.designation || !details.slogan || !details.logo || !details.phone || !details.website || !details.email;
+});
+
 // User authentication state
 export const isAuthenticatedAtom = atom(false);
 
