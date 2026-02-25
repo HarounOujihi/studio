@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // url = "postgresql://postgres:9c1c-6814-4d39-b98@localhost:54325/sawi-dev?schema=public"
 }
 
 // --User
@@ -201,9 +200,9 @@ model Organization {
   blogPostCategories      BlogPostCategory[]
   blogPostRelatedArticles BlogPostRelatedArticles[]
 
-  ecPages  EcPage[]
-  ecThemes EcTheme[]
-  workingHours  WorkingHour[] 
+  ecPages      EcPage[]
+  ecThemes     EcTheme[]
+  workingHours WorkingHour[]
 }
 
 // --Establishment
@@ -217,10 +216,20 @@ model Establishment {
   isDefault   Boolean?             @default(false)
   isHidden    Boolean?             @default(false)
   logo        String?
+  cover       String?
   slogan      String?
   phone       String?
   email       String?
   website     String?
+  slug        String?
+
+  // MAIN Address Fields
+  address     String?  // Street address
+  city        String?
+  zipCode     String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
 
   createdAt DateTime? @default(now())
   updatedAt DateTime? @default(now()) @updatedAt
@@ -257,7 +266,7 @@ model Establishment {
   emplyees             Employee[]
 
   articleCategories  ArticleCategories[]
-  address            Address[]
+  addresses            Address[]
   inventoryHeaders   InventoryHeader[]
   inventoryMovements InventoryMovement[]
   articleDeposits    ArticleDeposits[]
@@ -301,9 +310,9 @@ model Establishment {
   blogPostCategories      BlogPostCategory[]
   blogPostRelatedArticles BlogPostRelatedArticles[]
 
-  ecPages  EcPage[]
-  ecThemes EcTheme[]
-  workingHours  WorkingHour[]  
+  ecPages      EcPage[]
+  ecThemes     EcTheme[]
+  workingHours WorkingHour[]
 }
 
 enum DayOfWeek {
@@ -317,18 +326,17 @@ enum DayOfWeek {
 }
 
 model WorkingHour {
-  id             String      @id @default(uuid())
-  idOrg       String      @map("idOrg")
-  idEtb       String      @map("idEtb")
+  id    String @id @default(uuid())
+  idOrg String @map("idOrg")
+  idEtb String @map("idEtb")
 
-  dayOfWeek      DayOfWeek   // 0-6 or Mon-Sun
-  openTime       String     // Stored as "HH:mm" e.g., "09:00" 
-  closeTime      String     // Stored as "HH:mm" e.g., "17:00"
-  isClosed       Boolean    @default(false) // Handles "Closed" days explicitly
+  dayOfWeek DayOfWeek // 0-6 or Mon-Sun
+  openTime  String // Stored as "HH:mm" e.g., "09:00" 
+  closeTime String // Stored as "HH:mm" e.g., "17:00"
+  isClosed  Boolean   @default(false) // Handles "Closed" days explicitly
 
-  
-  organization       Organization        @relation(fields: [idOrg], references: [id])
-  establishment      Establishment       @relation(fields: [idEtb], references: [id])
+  organization  Organization  @relation(fields: [idOrg], references: [id])
+  establishment Establishment @relation(fields: [idEtb], references: [id])
 
   @@unique([idEtb, dayOfWeek]) // Prevents duplicate entries for Monday
 }
@@ -661,6 +669,35 @@ model Category {
   articleCategories ArticleCategories[]
   translations      CategoryTranslation[]
   medias            Media[]
+
+  globalCategoryId String?
+  globalCategory   GlobalCategory? @relation(fields: [globalCategoryId], references: [id])
+}
+
+model GlobalCategory {
+  id        String  @id
+  name      String // e.g., "Electronics", "Clothing"
+  nameFr    String?
+  slug      String @unique
+  sortIndex Int     @default(0)
+  isActive  Boolean @default(true)
+
+  iconName String? @default("HelpCircle") // Default fallback icon
+  image    String?
+
+  // A shop category maps to this
+  shopCategories Category[]
+}
+
+model Tag {
+  id       String  @id
+  name     String  @unique
+  nameFr   String?
+  slug     String  @unique
+  isActive Boolean @default(true)
+  group    String? // e.g., "audience", "condition", "feature"
+
+  articleTags ArticleTag[]
 }
 
 model Media {
@@ -838,6 +875,18 @@ model Article {
 
   blogPosts               BlogPost[]
   blogPostRelatedArticles BlogPostRelatedArticles[]
+
+  articleTags ArticleTag[]
+}
+
+model ArticleTag {
+  idArticle String
+  idTag     String
+
+  article Article @relation(fields: [idArticle], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [idTag], references: [id], onDelete: Cascade)
+
+  @@id([idArticle, idTag])
 }
 
 enum ServiceType {
