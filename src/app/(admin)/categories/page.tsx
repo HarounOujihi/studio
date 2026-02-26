@@ -109,7 +109,7 @@ export default function CategoriesPage() {
         const data = await response.json();
         throw new Error(data.error || "Erreur lors de la réorganisation");
       }
-
+      
       // Refresh to get updated order
       fetchCategories();
     } catch (err) {
