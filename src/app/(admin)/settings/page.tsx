@@ -3,15 +3,10 @@ import { Settings } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="container max-w-4xl lg:py-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Settings className="h-8 w-8" />
-          <h1 className="text-3xl font-bold">Settings</h1>
-        </div>
-        <p className="text-muted-foreground">
-          Manage your establishment information and preferences
-        </p>
+    <div className="max-w-7xl mx-auto pb-16">
+      <div className="flex items-center gap-2 mb-4">
+        <Settings className="h-5 w-5 text-primary" />
+        <h1 className="text-xl font-semibold">Paramètres</h1>
       </div>
 
       <EstablishmentSettings />

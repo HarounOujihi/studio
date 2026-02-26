@@ -148,7 +148,7 @@ export function LeafletMap({
   // Don't render anything during SSR
   if (!isClient) {
     return (
-      <div className={`h-64 rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
+      <div className={`rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-transparent" />
         <p className="text-sm text-muted-foreground mt-2">Loading map...</p>
       </div>
@@ -157,7 +157,7 @@ export function LeafletMap({
 
   if (hasError) {
     return (
-      <div className={`h-64 rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
+      <div className={`rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
         <MapPin className="h-12 w-12 text-muted-foreground mb-2" />
         <p className="text-sm text-muted-foreground">Unable to load map</p>
       </div>
@@ -166,7 +166,7 @@ export function LeafletMap({
 
   if (!isInitialized) {
     return (
-      <div className={`h-64 rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
+      <div className={`rounded-lg border border-dashed border-muted-foreground/30 flex flex-col items-center justify-center bg-muted/10 ${className}`}>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-transparent" />
         <p className="text-sm text-muted-foreground mt-2">Loading map...</p>
       </div>
@@ -175,7 +175,7 @@ export function LeafletMap({
 
   return (
     <div className={className}>
-      <div ref={mapRef} className="h-full w-full min-h-[320px] rounded-lg overflow-hidden z-0" />
+      <div ref={mapRef} className="h-full w-full rounded-lg overflow-hidden z-0" />
       {onLocationSelect && (
         <p className="text-xs text-muted-foreground mt-2">
           Drag the marker to adjust location

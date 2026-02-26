@@ -89,20 +89,6 @@ export async function GET(request: Request) {
             reference: true,
           },
         },
-        addresses: {
-          select: {
-            id: true,
-            street: true,
-            street2: true,
-            city: true,
-            state: true,
-            zipCode: true,
-            country: true,
-            lat: true,
-            lng: true,
-          },
-          take: 1,
-        },
         workingHours: {
           orderBy: { dayOfWeek: "asc" },
         },
@@ -179,50 +165,7 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
 
-    // Check if establishment has an existing address
-    const existingAddress = await prisma.address.findFirst({
-      where: { idEtb: establishment.id },
-    });
-
-    // Handle address update/create
-    if (body.address) {
-      const addr = body.address;
-      if (existingAddress) {
-        // Update existing address
-        await prisma.address.update({
-          where: { id: existingAddress.id },
-          data: {
-            ...(addr.street !== undefined && { street: addr.street }),
-            ...(addr.street2 !== undefined && { street2: addr.street2 }),
-            ...(addr.city !== undefined && { city: addr.city }),
-            ...(addr.state !== undefined && { state: addr.state }),
-            ...(addr.zipCode !== undefined && { zipCode: addr.zipCode }),
-            ...(addr.country !== undefined && { country: addr.country }),
-            ...(addr.lat !== undefined && { lat: String(addr.lat) }),
-            ...(addr.lng !== undefined && { lng: String(addr.lng) }),
-          },
-        });
-      } else if (addr.street || addr.city || addr.state || addr.country) {
-        // Create new address
-        await prisma.address.create({
-          data: {
-            id: `addr-${Date.now()}`,
-            idOrg: establishment.idOrg,
-            idEtb: establishment.id,
-            street: addr.street || null,
-            street2: addr.street2 || null,
-            city: addr.city || null,
-            state: addr.state || null,
-            zipCode: addr.zipCode || null,
-            country: addr.country || null,
-            lat: addr.lat ? String(addr.lat) : null,
-            lng: addr.lng ? String(addr.lng) : null,
-          },
-        });
-      }
-    }
-
-    // Update establishment
+    // Update establishment with direct address fields
     const updated = await prisma.establishment.update({
       where: { id: establishment.id },
       data: {
@@ -232,6 +175,13 @@ export async function PATCH(request: Request) {
         ...(body.phone !== undefined && { phone: body.phone || null }),
         ...(body.email !== undefined && { email: body.email || null }),
         ...(body.website !== undefined && { website: body.website || null }),
+        // Direct address fields
+        ...(body.address !== undefined && { address: body.address || null }),
+        ...(body.city !== undefined && { city: body.city || null }),
+        ...(body.zipCode !== undefined && { zipCode: body.zipCode || null }),
+        ...(body.country !== undefined && { country: body.country || null }),
+        ...(body.latitude !== undefined && { latitude: body.latitude || null }),
+        ...(body.longitude !== undefined && { longitude: body.longitude || null }),
       },
       include: {
         organization: {
@@ -248,20 +198,6 @@ export async function PATCH(request: Request) {
             symbol: true,
             reference: true,
           },
-        },
-        addresses: {
-          select: {
-            id: true,
-            street: true,
-            street2: true,
-            city: true,
-            state: true,
-            zipCode: true,
-            country: true,
-            lat: true,
-            lng: true,
-          },
-          take: 1,
         },
         workingHours: {
           orderBy: { dayOfWeek: "asc" },
