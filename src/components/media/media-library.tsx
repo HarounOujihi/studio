@@ -28,6 +28,7 @@ import { S3_HOST } from "@/lib/config";
 import { useAtom } from "jotai";
 import { mediaCacheHelpersAtom } from "@/lib/store/media-cache";
 import type { MediaFile } from "@/lib/store/media-cache";
+import { toast } from "sonner";
 
 // Get thumbnail URL for non-AVIF images
 // Thumbnails are generated on-the-fly via query parameter: ?thumbnail=300x300
@@ -238,7 +239,7 @@ export function MediaLibrary({
       fetchFilesFromApi();
     } catch (error) {
       console.error("Error deleting files:", error);
-      alert(error instanceof Error ? error.message : "Erreur lors de la suppression");
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
     } finally {
       setDeleting(false);
     }
@@ -269,7 +270,7 @@ export function MediaLibrary({
       fetchFilesFromApi();
     } catch (error) {
       console.error("Error uploading files:", error);
-      alert("Erreur lors du téléchargement");
+      toast.error("Erreur lors du téléchargement");
     } finally {
       setUploading(false);
       // Reset input

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { currentEtbIdAtom, currentOrgIdAtom } from "@/lib/store/auth-oidc";
 import { CategoryTree, CategoryTreeNode } from "@/components/categories/category-tree";
 import { CategoryForm, DeleteConfirmDialog } from "@/components/categories/category-form";
+import { toast } from "sonner";
 
 export default function CategoriesPage() {
   const etbId = useAtomValue(currentEtbIdAtom);
@@ -113,7 +114,7 @@ export default function CategoriesPage() {
       fetchCategories();
     } catch (err) {
       console.error("Erreur:", err);
-      alert("Erreur lors de la réorganisation des catégories");
+      toast.error("Erreur lors de la réorganisation des catégories");
     }
   };
 

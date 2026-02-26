@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { S3_HOST } from "@/lib/config";
 import { MediaLibrary } from "@/components/media/media-library";
+import { toast } from "sonner";
 
 interface ImageUploadProps {
   value: string | null; // S3 key
@@ -40,7 +41,7 @@ export function ImageUpload({
   const handleUpload = useCallback(
     async (file: File) => {
       if (!file.type.startsWith("image/")) {
-        alert("Veuillez télécharger un fichier image");
+        toast.error("Veuillez télécharger un fichier image");
         return;
       }
 
@@ -65,10 +66,11 @@ export function ImageUpload({
         const uploadedFile = data.files?.[0];
         if (uploadedFile?.key) {
           onChange(uploadedFile.key);
+          toast.success("Image téléchargée");
         }
       } catch (error) {
         console.error("Erreur de téléchargement:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors du téléchargement");
+        toast.error(error instanceof Error ? error.message : "Erreur lors du téléchargement");
       } finally {
         setUploading(false);
       }

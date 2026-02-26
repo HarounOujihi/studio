@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { ImageUpload } from "@/components/ui/image-upload";
 import type { CategoryTreeNode } from "./category-tree";
+import { toast } from "sonner";
 
 type GlobalCategory = {
   id: string;
@@ -155,12 +156,12 @@ export function CategoryForm({
     e.preventDefault();
 
     if (!formData.designation.trim()) {
-      alert("Le nom est requis");
+      toast.error("Le nom est requis");
       return;
     }
 
     if (!formData.globalCategoryId) {
-      alert("Veuillez sélectionner une catégorie globale");
+      toast.error("Veuillez sélectionner une catégorie globale");
       return;
     }
 
@@ -193,11 +194,12 @@ export function CategoryForm({
         throw new Error(data.error || "Erreur lors de l'enregistrement");
       }
 
+      toast.success(category ? "Catégorie modifiée" : "Catégorie créée");
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur:", error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Erreur lors de l'enregistrement",
@@ -388,11 +390,12 @@ export function DeleteConfirmDialog({
         throw new Error(data.error || "Erreur lors de la suppression");
       }
 
+      toast.success("Catégorie supprimée");
       onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur:", error);
-      alert(
+      toast.error(
         error instanceof Error
           ? error.message
           : "Erreur lors de la suppression",

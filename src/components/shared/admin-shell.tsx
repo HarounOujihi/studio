@@ -4,7 +4,7 @@ import * as React from "react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { getCdnUrl } from "@/lib/config";
+import { getCdnUrl, S3_HOST } from "@/lib/config";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -443,11 +443,11 @@ function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            {user.image ? (
+            {user?.picture ? (
               <img
-                src={getCdnUrl(user.image) || undefined}
-                alt={user.firstName || "User"}
-                className="h-full w-full rounded-full object-cover"
+                src={`${S3_HOST}/${user?.picture}` || undefined}
+                alt={user?.firstName || "User"}
+                className="size-full rounded-full object-cover"
               />
             ) : (
               <span className="text-sm font-medium">{initials || "U"}</span>
@@ -693,7 +693,7 @@ export function AdminShell({ children }: AdminShellProps) {
               <UserMenu />
             </header>
           )}
-          <main className="flex-1 overflow-y-auto p-4 pt-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto p-2 pt-6 lg:p-8">
             {hasScope ? children : <ScopePrompt onCreateOrg={() => setShowOnboarding(true)} />}
           </main>
         </div>
