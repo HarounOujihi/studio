@@ -21,6 +21,7 @@ import {
   File,
   Check,
   X,
+  ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { S3_HOST } from "@/lib/config";
@@ -35,6 +36,33 @@ type MediaFile = {
   isDocument: boolean;
   type: "image" | "document" | "other";
 };
+
+// Get thumbnail URL for non-AVIF images
+// Thumbnails are stored at: {orgId}/thumbnails/{filename}.webp
+function getThumbnailUrl(file: MediaFile): string {
+  if (!file.isImage) {
+    return "";
+  }
+
+  // AVIF files are already optimized, use original
+  if (file.extension.toLowerCase() === "avif") {
+    return `${S3_HOST}/${file.key}`;
+  }
+
+  // For other images, try thumbnail first
+  // Thumbnail pattern: replace {orgId}/filename.ext with {orgId}/thumbnails/filename.webp
+  const parts = file.key.split("/");
+  const orgId = parts[0];
+  const filename = parts.slice(1).join("/");
+  const nameWithoutExt = filename.substring(0, filename.lastIndexOf(".")) || filename;
+
+  return `${S3_HOST}/${orgId}/thumbnails/${nameWithoutExt}.webp`;
+}
+
+// Get original image URL
+function getOriginalUrl(file: MediaFile): string {
+  return `${S3_HOST}/${file.key}`;
+}
 
 interface MediaLibraryProps {
   open: boolean;
@@ -62,6 +90,8 @@ export function MediaLibrary({
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
+  const [thumbnailErrors, setThumbnailErrors] = useState<Set<string>>(new Set());
 
   const fetchFiles = useCallback(async () => {
     if (!orgId) return;
@@ -188,11 +218,20 @@ export function MediaLibrary({
 
   const getFileIcon = (file: MediaFile) => {
     if (file.isImage) {
+      const useThumbnail = file.extension.toLowerCase() !== "avif" && !thumbnailErrors.has(file.key);
+      const imgSrc = useThumbnail ? getThumbnailUrl(file) : getOriginalUrl(file);
+
       return (
         <img
-          src={`${S3_HOST}/${file.key}`}
+          src={imgSrc}
           alt={file.filename}
           className="w-full h-full object-cover"
+          onError={() => {
+            // If thumbnail fails, fall back to original
+            if (useThumbnail) {
+              setThumbnailErrors(prev => new Set(prev).add(file.key));
+            }
+          }}
         />
       );
     }
@@ -204,7 +243,7 @@ export function MediaLibrary({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col lg:max-w-7xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -303,35 +342,54 @@ export function MediaLibrary({
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 p-1">
               {filteredFiles.map((file) => (
-                <button
+                <div
                   key={file.key}
-                  type="button"
-                  onClick={() => handleSelect(file.key)}
-                  className={cn(
-                    "relative aspect-square rounded-lg border-2 overflow-hidden transition-all",
-                    "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
-                    selectedKeys.has(file.key)
-                      ? "border-primary ring-2 ring-primary/50"
-                      : "border-transparent bg-muted"
-                  )}
+                  className="group relative aspect-square"
                 >
-                  {/* File preview/icon */}
-                  <div className="absolute inset-0 flex items-center justify-center p-2">
-                    {getFileIcon(file)}
-                  </div>
-
-                  {/* Selection indicator */}
-                  {selectedKeys.has(file.key) && (
-                    <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
-                      <Check className="h-3 w-3" />
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(file.key)}
+                    className={cn(
+                      "w-full h-full rounded-lg border-2 overflow-hidden transition-all",
+                      "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
+                      selectedKeys.has(file.key)
+                        ? "border-primary ring-2 ring-primary/50"
+                        : "border-transparent bg-muted"
+                    )}
+                  >
+                    {/* File preview/icon */}
+                    <div className="absolute inset-0 flex items-center justify-center p-2">
+                      {getFileIcon(file)}
                     </div>
-                  )}
 
-                  {/* Filename tooltip */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                    <p className="text-white text-xs truncate">{file.filename}</p>
-                  </div>
-                </button>
+                    {/* Selection indicator */}
+                    {selectedKeys.has(file.key) && (
+                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5 z-10">
+                        <Check className="h-3 w-3" />
+                      </div>
+                    )}
+
+                    {/* Filename tooltip */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                      <p className="text-white text-xs truncate">{file.filename}</p>
+                    </div>
+                  </button>
+
+                  {/* Preview button - only for images */}
+                  {file.isImage && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewFile(file);
+                      }}
+                      className="absolute top-1 left-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      title="Aperçu"
+                    >
+                      <ZoomIn className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -354,6 +412,43 @@ export function MediaLibrary({
           </div>
         </div>
       </DialogContent>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+          {previewFile && (
+            <div className="relative">
+              {/* Close button */}
+              <button
+                onClick={() => setPreviewFile(null)}
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              {/* Image */}
+              <img
+                src={getOriginalUrl(previewFile)}
+                alt={previewFile.filename}
+                className="w-full h-auto max-h-[85vh] object-contain"
+              />
+
+              {/* Image info */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <p className="text-white font-medium truncate">{previewFile.filename}</p>
+                <p className="text-white/70 text-sm">
+                  {formatFileSize(previewFile.size)}
+                  {previewFile.lastModified && (
+                    <span className="ml-2">
+                      • {new Date(previewFile.lastModified).toLocaleDateString("fr-FR")}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

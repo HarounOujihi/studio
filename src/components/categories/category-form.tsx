@@ -41,7 +41,13 @@ type GlobalCategory = {
 };
 
 // Helper to render Lucide icon by name
-function DynamicIcon({ name, className }: { name: string | null; className?: string }) {
+function DynamicIcon({
+  name,
+  className,
+}: {
+  name: string | null;
+  className?: string;
+}) {
   if (!name) return <HelpCircle className={className} />;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,7 +79,9 @@ export function CategoryForm({
   onSuccess,
 }: CategoryFormProps) {
   const [loading, setLoading] = useState(false);
-  const [globalCategories, setGlobalCategories] = useState<GlobalCategory[]>([]);
+  const [globalCategories, setGlobalCategories] = useState<GlobalCategory[]>(
+    [],
+  );
   const [formData, setFormData] = useState({
     designation: "",
     slug: "",
@@ -94,7 +102,10 @@ export function CategoryForm({
         const data = await response.json();
         setGlobalCategories(data.globalCategories || []);
       } catch (error) {
-        console.error("Erreur lors du chargement des catégories globales:", error);
+        console.error(
+          "Erreur lors du chargement des catégories globales:",
+          error,
+        );
       }
     };
     fetchGlobalCategories();
@@ -186,7 +197,11 @@ export function CategoryForm({
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur:", error);
-      alert(error instanceof Error ? error.message : "Erreur lors de l'enregistrement");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'enregistrement",
+      );
     } finally {
       setLoading(false);
     }
@@ -198,7 +213,7 @@ export function CategoryForm({
         side="bottom"
         className="
           h-[85vh] rounded-t-xl
-          sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-md lg:max-w-lg
+          sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-full sm:max-w-md lg:max-w-3xl
           sm:rounded-none sm:border-t-0 sm:border-l
           sm:data-[state=closed]:slide-out-to-right sm:data-[state=open]:slide-in-from-right
           overflow-y-auto
@@ -209,8 +224,8 @@ export function CategoryForm({
             {isEditing
               ? "Modifier la catégorie"
               : parentId
-              ? "Ajouter une sous-catégorie"
-              : "Ajouter une catégorie"}
+                ? "Ajouter une sous-catégorie"
+                : "Ajouter une catégorie"}
           </SheetTitle>
           <SheetDescription>
             {parentId && parentCategory && (
@@ -227,14 +242,18 @@ export function CategoryForm({
             <ImageUpload
               label="Logo"
               value={formData.logo}
-              onChange={(key) => setFormData((prev) => ({ ...prev, logo: key }))}
+              onChange={(key) =>
+                setFormData((prev) => ({ ...prev, logo: key }))
+              }
               orgId={orgId}
               aspectRatio="square"
             />
             <ImageUpload
               label="Image de couverture"
               value={formData.image}
-              onChange={(key) => setFormData((prev) => ({ ...prev, image: key }))}
+              onChange={(key) =>
+                setFormData((prev) => ({ ...prev, image: key }))
+              }
               orgId={orgId}
               aspectRatio="landscape"
             />
@@ -356,9 +375,12 @@ export function DeleteConfirmDialog({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/categories/${category.id}?etbId=${etbId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/categories/${category.id}?etbId=${etbId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       const data = await response.json();
 
@@ -370,7 +392,11 @@ export function DeleteConfirmDialog({
       onOpenChange(false);
     } catch (error) {
       console.error("Erreur:", error);
-      alert(error instanceof Error ? error.message : "Erreur lors de la suppression");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la suppression",
+      );
     } finally {
       setLoading(false);
     }
@@ -382,7 +408,8 @@ export function DeleteConfirmDialog({
         <DialogHeader>
           <DialogTitle>Supprimer la catégorie</DialogTitle>
           <DialogDescription>
-            Êtes-vous sûr de vouloir supprimer &quot;{category?.designation || category?.reference}
+            Êtes-vous sûr de vouloir supprimer &quot;
+            {category?.designation || category?.reference}
             &quot; ? Cette action est irréversible.
           </DialogDescription>
         </DialogHeader>
@@ -390,7 +417,11 @@ export function DeleteConfirmDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={loading}>
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={loading}
+          >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Supprimer
           </Button>
