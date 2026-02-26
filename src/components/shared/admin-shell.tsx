@@ -52,7 +52,6 @@ import {
 } from "@/lib/store/auth-oidc";
 import { settingsIncompleteAtom } from "@/lib/store/auth";
 import { useEstablishmentDetails } from "@/lib/hooks/use-establishment-details";
-import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 
@@ -417,28 +416,9 @@ function UserMenu() {
     loadSession();
   }, []);
 
-  const handleLogout = async () => {
-    // Get the current session to retrieve id_token
-    try {
-      const response = await fetch("/api/auth/session");
-      const sessionData = await response.json();
-      const idToken = sessionData?.session?.idToken;
-
-      // First, call NextAuth signOut to clear local session
-      await signOut({ redirect: false });
-
-      // Then redirect to OIDC logout URL with id_token_hint
-      const logoutUrl = process.env.NEXT_PUBLIC_OIDC_LOGOUT_URL
-        ? `${process.env.NEXT_PUBLIC_OIDC_LOGOUT_URL}?id_token_hint=${encodeURIComponent(idToken || "")}&post_logout_redirect_uri=${encodeURIComponent(window.location.origin + "/auth/login")}`
-        : "/auth/login";
-
-      window.location.href = logoutUrl;
-    } catch (error) {
-      console.error("Logout error:", error);
-      // Fallback to simple logout
-      await signOut({ redirect: false });
-      window.location.href = "/auth/login";
-    }
+  const handleLogout = () => {
+    // Redirect to server-side logout route which handles OIDC logout
+    window.location.href = "/api/auth/logout";
   };
 
   if (loading || !user) {
