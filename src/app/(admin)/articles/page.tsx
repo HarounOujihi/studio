@@ -28,7 +28,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { useScope } from "@/hooks/useScopedQuery";
+import { useScope } from "@/hooks/use-scope";
 
 type ViewMode = "table" | "grid";
 
@@ -114,17 +114,6 @@ export default function ArticleListItemsAdminPage() {
   useEffect(() => {
     setPage(1);
   }, [filterPublish, filterType, searchQuery]);
-
-  // Client-side search filter
-  const filteredArticleListItems = articles.filter((article: ArticleListItem) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      article.designation?.toLowerCase().includes(query) ||
-      article.reference.toLowerCase().includes(query) ||
-      article.description?.toLowerCase().includes(query)
-    );
-  });
 
   const getProductTypeColor = (type?: string) => {
     switch (type) {
@@ -227,12 +216,12 @@ export default function ArticleListItemsAdminPage() {
             )}
 
             {/* ArticleListItems List/Grid */}
-            {filteredArticleListItems.length > 0 && (
+            {articles.length > 0 && (
               <>
                 {/* Toolbar */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    {/* {filteredArticleListItems.length} articles
+                    {/* {articles.length} articles
                     {pagination &&
                       ` (page ${page} of ${pagination.totalPages})`} */}
                     {pagination && <div>{pagination.total} total articles</div>}
@@ -269,7 +258,7 @@ export default function ArticleListItemsAdminPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredArticleListItems.map((article: ArticleListItem) => (
+                        {articles.map((article: ArticleListItem) => (
                           <TableRow
                             key={article.id}
                             className="hover:bg-muted/50"
@@ -343,7 +332,7 @@ export default function ArticleListItemsAdminPage() {
                 {/* Grid View (Mobile & Desktop) */}
                 {viewMode === "grid" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredArticleListItems.map((article) => (
+                    {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}
                   </div>
@@ -352,7 +341,7 @@ export default function ArticleListItemsAdminPage() {
                 {/* Mobile Table View */}
                 {viewMode === "table" && (
                   <div className="md:hidden space-y-4">
-                    {filteredArticleListItems.map((article) => (
+                    {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}
                   </div>

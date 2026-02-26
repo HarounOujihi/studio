@@ -59,16 +59,16 @@ interface AdminShellProps {
   children: React.ReactNode;
 }
 
-// Types matching the Convex query return shape
-type ConvexOrganization = {
+// Types for organization and establishment data
+type OrgData = {
   id: string;
   name?: string;
   logo?: string;
   role: string;
-  establishments: ConvexEstablishment[];
+  establishments: EtbData[];
 };
 
-type ConvexEstablishment = {
+type EtbData = {
   id: string;
   name?: string;
 };
@@ -191,7 +191,7 @@ function OrgSwitcher({
 
   // Fetch organizations from Prisma API
   const [orgsData, setOrgsData] = React.useState<{
-    organizations?: ConvexOrganization[];
+    organizations?: OrgData[];
   } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [initialized, setInitialized] = React.useState(false);
@@ -218,13 +218,13 @@ function OrgSwitcher({
     if (prismaOrgs && prismaOrgs.length > 0) {
       // Convert Prisma result to match Organization interface
       const typedOrgs: Organization[] = prismaOrgs.map(
-        (org: ConvexOrganization) => ({
+        (org: OrgData) => ({
           id: org.id,
           name: org.name || org.id,
           logo: org.logo,
           role: org.role as OrganizationRole,
           establishments: (org.establishments || []).map(
-            (etb: ConvexEstablishment): Establishment => ({
+            (etb: EtbData): Establishment => ({
               id: etb.id,
               name: etb.name || etb.id,
             }),

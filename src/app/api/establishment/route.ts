@@ -172,6 +172,7 @@ export async function PATCH(request: Request) {
         ...(body.designation !== undefined && { designation: body.designation }),
         ...(body.slogan !== undefined && { slogan: body.slogan || null }),
         ...(body.logo !== undefined && { logo: body.logo || null }),
+        ...(body.cover !== undefined && { cover: body.cover || null }),
         ...(body.phone !== undefined && { phone: body.phone || null }),
         ...(body.email !== undefined && { email: body.email || null }),
         ...(body.website !== undefined && { website: body.website || null }),

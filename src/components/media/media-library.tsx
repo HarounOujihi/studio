@@ -73,12 +73,16 @@ export function MediaLibrary({
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<string>(fileType === "all" ? "all" : fileType);
+  const [activeTab, setActiveTab] = useState<string>(
+    fileType === "all" ? "all" : fileType,
+  );
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
-  const [thumbnailErrors, setThumbnailErrors] = useState<Set<string>>(new Set());
+  const [thumbnailErrors, setThumbnailErrors] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [cacheHelpers, dispatchCache] = useAtom(mediaCacheHelpersAtom);
 
@@ -187,7 +191,7 @@ export function MediaLibrary({
 
   // Filter files by search
   const filteredFiles = files.filter((file) =>
-    file.filename.toLowerCase().includes(search.toLowerCase())
+    file.filename.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleSelect = (key: string) => {
@@ -239,7 +243,11 @@ export function MediaLibrary({
       fetchFilesFromApi();
     } catch (error) {
       console.error("Error deleting files:", error);
-      toast.error(error instanceof Error ? error.message : "Erreur lors de la suppression");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la suppression",
+      );
     } finally {
       setDeleting(false);
     }
@@ -286,8 +294,12 @@ export function MediaLibrary({
 
   const getFileIcon = (file: MediaFile) => {
     if (file.isImage) {
-      const useThumbnail = file.extension.toLowerCase() !== "avif" && !thumbnailErrors.has(file.key);
-      const imgSrc = useThumbnail ? getThumbnailUrl(file) : getOriginalUrl(file);
+      const useThumbnail =
+        file.extension.toLowerCase() !== "avif" &&
+        !thumbnailErrors.has(file.key);
+      const imgSrc = useThumbnail
+        ? getThumbnailUrl(file)
+        : getOriginalUrl(file);
 
       return (
         <img
@@ -297,7 +309,7 @@ export function MediaLibrary({
           onError={() => {
             // If thumbnail fails, fall back to original
             if (useThumbnail) {
-              setThumbnailErrors(prev => new Set(prev).add(file.key));
+              setThumbnailErrors((prev) => new Set(prev).add(file.key));
             }
           }}
         />
@@ -311,7 +323,7 @@ export function MediaLibrary({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col lg:max-w-7xl">
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col md:max-w-[95%] lg:max-w-7xl p-2 lg:p-4">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -353,11 +365,7 @@ export function MediaLibrary({
 
           {/* Actions */}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
+            <Button variant="outline" size="sm" asChild>
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -387,7 +395,9 @@ export function MediaLibrary({
                 ) : (
                   <Trash2 className="h-4 w-4 mr-1" />
                 )}
-                <span className="hidden sm:inline">Supprimer ({selectedKeys.size})</span>
+                <span className="hidden sm:inline">
+                  Supprimer ({selectedKeys.size})
+                </span>
               </Button>
             )}
           </div>
@@ -408,12 +418,9 @@ export function MediaLibrary({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 p-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {filteredFiles.map((file) => (
-                <div
-                  key={file.key}
-                  className="group relative aspect-square"
-                >
+                <div key={file.key} className="group relative aspect-square">
                   <button
                     type="button"
                     onClick={() => handleSelect(file.key)}
@@ -422,7 +429,7 @@ export function MediaLibrary({
                       "hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/50",
                       selectedKeys.has(file.key)
                         ? "border-primary ring-2 ring-primary/50"
-                        : "border-transparent bg-muted"
+                        : "border-transparent bg-muted",
                     )}
                   >
                     {/* File preview/icon */}
@@ -439,11 +446,13 @@ export function MediaLibrary({
 
                     {/* Filename tooltip */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                      <p className="text-white text-xs truncate">{file.filename}</p>
+                      <p className="text-white text-xs truncate">
+                        {file.filename}
+                      </p>
                     </div>
                   </button>
 
-                  {/* Preview button - only for images */}
+                  {/* Preview button - only for images, always visible on mobile */}
                   {file.isImage && (
                     <button
                       type="button"
@@ -451,7 +460,7 @@ export function MediaLibrary({
                         e.stopPropagation();
                         setPreviewFile(file);
                       }}
-                      className="absolute top-1 left-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      className="absolute top-1 left-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-opacity z-10"
                       title="Aperçu"
                     >
                       <ZoomIn className="h-3 w-3" />
@@ -483,7 +492,7 @@ export function MediaLibrary({
 
       {/* Image Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden">
           {previewFile && (
             <div className="relative">
               {/* Close button */}
@@ -503,12 +512,17 @@ export function MediaLibrary({
 
               {/* Image info */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                <p className="text-white font-medium truncate">{previewFile.filename}</p>
+                <p className="text-white font-medium truncate">
+                  {previewFile.filename}
+                </p>
                 <p className="text-white/70 text-sm">
                   {formatFileSize(previewFile.size)}
                   {previewFile.lastModified && (
                     <span className="ml-2">
-                      • {new Date(previewFile.lastModified).toLocaleDateString("fr-FR")}
+                      •{" "}
+                      {new Date(previewFile.lastModified).toLocaleDateString(
+                        "fr-FR",
+                      )}
                     </span>
                   )}
                 </p>

@@ -3,13 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:convex\" \"npm run dev:next\"",
-    "dev:convex": "convex dev",
-    "dev:next": "next dev",
+    "dev": "next dev",
     "build": "next build",
-    "build:convex": "convex deploy",
     "start": "next start",
-    "sync": "tsx scripts/sync-prisma-to-convex.ts",
     "lint": "eslint"
   },
   "dependencies": {
@@ -27,7 +23,6 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "^1.31.7",
     "date-fns": "^4.1.0",
     "gql": "^1.1.2",
     "jose": "^6.1.3",

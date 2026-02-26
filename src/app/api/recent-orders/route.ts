@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@/convex/_generated/api";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,24 +14,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch headers from Convex (these are auto-synced from Prisma)
-    const headers = await convex.query(api.headers.list, {
-      idOrg,
-      idEtb,
+    // Fetch recent headers from Prisma
+    const headers = await prisma.header.findMany({
+      where: {
+        idOrg,
+        idEtb,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 10,
+      include: {
+        _count: {
+          select: { Movement: true },
+        },
+      },
     });
 
-    // Get movements for each header to count items
-    const headersWithCounts = await Promise.all(
-      (headers || []).map(async (header) => {
-        const movements = await convex.query(api.movements.getByHeader, {
-          idHeader: header.id,
-        });
-        return {
-          ...header,
-          itemsCount: movements.length,
-        };
-      })
-    );
+    // Transform to match expected format
+    const headersWithCounts = headers.map((header) => ({
+      id: header.id,
+      reference: header.reference,
+      status: header.status,
+      taxedAmount: header.taxedAmount,
+      createdAt: header.createdAt,
+      itemsCount: header._count.Movement,
+    }));
 
     return NextResponse.json({
       headers: headersWithCounts,

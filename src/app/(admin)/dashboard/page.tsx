@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader, ActionButton, ActionGroup } from "@/components/admin/page-header";
-import { useScope } from "@/hooks/useScopedQuery";
+import { useScope } from "@/hooks/use-scope";
 
 interface StatCard {
   title: string;
@@ -235,12 +235,12 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Recent Activity - Real-time from Convex */}
+          {/* Recent Activity */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                Recent Orders (Real-time)
+                Recent Orders
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -254,7 +254,7 @@ export default function DashboardPage() {
 }
 
 function RecentActivity({ scope }: { scope: { orgId: string | null; etbId: string | null } }) {
-  // Use a simple fetch to get recent headers from Convex
+  // Fetch recent headers from API
   const [recentHeaders, setRecentHeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
