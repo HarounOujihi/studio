@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Package, MapPin, Plus, Download, Upload, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Package, MapPin, Plus, Download, Upload, ChevronRight, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader, ActionButton, ActionGroup } from "@/components/admin/page-header";
 import { useSetAtom } from "jotai";
@@ -34,9 +33,25 @@ type Location = {
 };
 
 export default function LocationsPage() {
-  const locations = useQuery(api.organizations.listAllLocations);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(true);
   const switchOrg = useSetAtom(switchOrganizationAtom);
   const switchEtb = useSetAtom(switchEstablishmentAtom);
+
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const response = await fetch("/api/locations");
+        const data = await response.json();
+        setLocations(data.locations || []);
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLocations();
+  }, []);
 
   const handleLocationClick = (location: Location) => {
     if (location.establishment?.id && location.organization?.id) {
@@ -60,7 +75,7 @@ export default function LocationsPage() {
           {
             icon: <MapPin className="w-4 h-4" />,
             label: "locations",
-            value: locations?.length ?? 0,
+            value: locations.length,
           },
         ]}
         actions={
@@ -79,24 +94,14 @@ export default function LocationsPage() {
       />
 
       {/* Loading State */}
-      {locations === undefined && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <div className="h-5 bg-muted rounded w-3/4" />
-                  <div className="h-4 bg-muted rounded w-1/2" />
-                  <div className="h-4 bg-muted rounded w-1/3" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
       {/* Empty State */}
-      {locations !== undefined && locations.length === 0 && (
+      {!loading && locations.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Package className="w-16 h-16 text-muted-foreground/50 mb-4" />
@@ -109,7 +114,7 @@ export default function LocationsPage() {
       )}
 
       {/* Locations Grid */}
-      {locations && locations.length > 0 && (
+      {!loading && locations.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {locations.map((loc) => (
             <LocationCard

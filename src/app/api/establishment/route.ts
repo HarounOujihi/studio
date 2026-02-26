@@ -89,7 +89,7 @@ export async function GET(request: Request) {
             reference: true,
           },
         },
-        address: {
+        addresses: {
           select: {
             id: true,
             street: true,
@@ -249,7 +249,7 @@ export async function PATCH(request: Request) {
             reference: true,
           },
         },
-        address: {
+        addresses: {
           select: {
             id: true,
             street: true,

@@ -128,7 +128,7 @@ export default function CategoriesPage() {
           <div>
             <h1 className="text-xl font-semibold">Catégories</h1>
             <p className="text-sm text-muted-foreground">
-              Glisser pour réorganiser, déplier pour gérer les sous-catégories
+              Glisser pour réorganiser
             </p>
           </div>
           <div className="flex items-center gap-2">

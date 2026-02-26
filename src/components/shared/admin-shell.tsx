@@ -34,6 +34,7 @@ import {
   Warehouse,
   MapPin,
   Ruler,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useMobile } from "@/lib/hooks/use-mobile";
@@ -194,6 +195,7 @@ function OrgSwitcher({
     organizations?: ConvexOrganization[];
   } | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [initialized, setInitialized] = React.useState(false);
 
   React.useEffect(() => {
     async function loadOrganizations() {
@@ -231,8 +233,11 @@ function OrgSwitcher({
         }),
       );
       initializeOrgs(typedOrgs);
+      setInitialized(true);
+    } else if (!isLoading && prismaOrgs !== undefined) {
+      setInitialized(true);
     }
-  }, [prismaOrgs, initializeOrgs]);
+  }, [prismaOrgs, initializeOrgs, isLoading]);
 
   // Call onNoOrganizations callback if user has no organizations
   React.useEffect(() => {
@@ -241,7 +246,25 @@ function OrgSwitcher({
     }
   }, [isLoading, prismaOrgs, onNoOrganizations]);
 
-  if (isLoading || !currentOrg) return null;
+  // Show loading while fetching or initializing
+  if (isLoading || !initialized) {
+    return (
+      <Button variant="outline" disabled className="gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Chargement...</span>
+      </Button>
+    );
+  }
+
+  // If no organizations, show create button
+  if (!currentOrg || organizations.length === 0) {
+    return (
+      <Button variant="outline" onClick={() => onNoOrganizations?.()} className="gap-2">
+        <Building2 className="h-4 w-4" />
+        <span>Créer une organisation</span>
+      </Button>
+    );
+  }
 
   // Mobile: Collapsible list view
   if (isMobile) {
@@ -484,15 +507,43 @@ function UserMenu() {
   );
 }
 
+// Scope selection prompt component
+function ScopePrompt({ onCreateOrg }: { onCreateOrg: () => void }) {
+  const organizations = useAtomValue(organizationsAtom);
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
+      <h2 className="text-xl font-semibold mb-2">Sélectionnez une organisation</h2>
+      <p className="text-muted-foreground mb-6 max-w-md">
+        Veuillez sélectionner une organisation et un établissement pour continuer.
+      </p>
+      {organizations.length === 0 && (
+        <Button onClick={onCreateOrg}>
+          <Building2 className="h-4 w-4 mr-2" />
+          Créer une organisation
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function AdminShell({ children }: AdminShellProps) {
   const isMobile = useMobile();
   const [open, setOpen] = React.useState(false);
   const [showOnboarding, setShowOnboarding] = React.useState(false);
   const pathname = usePathname();
 
+  // Get current scope
+  const currentOrg = useAtomValue(currentOrganizationAtom);
+  const currentEtb = useAtomValue(currentEstablishmentAtom);
+
   // Fetch establishment details and check if settings are incomplete
   useEstablishmentDetails();
   const [settingsIncomplete] = useAtom(settingsIncompleteAtom);
+
+  // Check if scope is ready
+  const hasScope = currentOrg && currentEtb;
 
   // Helper to check if a path is active
   const isActive = (href: string) => {
@@ -663,7 +714,7 @@ export function AdminShell({ children }: AdminShellProps) {
             </header>
           )}
           <main className="flex-1 overflow-y-auto p-4 pt-6 lg:p-8">
-            {children}
+            {hasScope ? children : <ScopePrompt onCreateOrg={() => setShowOnboarding(true)} />}
           </main>
         </div>
       </div>

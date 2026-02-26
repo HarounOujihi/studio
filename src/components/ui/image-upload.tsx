@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, Image as ImageIcon, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { S3_HOST } from "@/lib/config";
+import { MediaLibrary } from "@/components/media/media-library";
 
 interface ImageUploadProps {
   value: string | null; // S3 key
@@ -25,6 +26,7 @@ export function ImageUpload({
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const imageUrl = value ? `${S3_HOST}/${value}` : null;
@@ -109,8 +111,10 @@ export function ImageUpload({
     onChange(null);
   };
 
-  const handleButtonClick = () => {
-    inputRef.current?.click();
+  const handleLibrarySelect = (keys: string[]) => {
+    if (keys.length > 0) {
+      onChange(keys[0]);
+    }
   };
 
   return (
@@ -145,10 +149,20 @@ export function ImageUpload({
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={handleButtonClick}
+                onClick={() => setLibraryOpen(true)}
+                title="Choisir de la bibliothèque"
+              >
+                <FolderOpen className="h-4 w-4 mr-1" />
+                Bibliothèque
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => inputRef.current?.click()}
               >
                 <Upload className="h-4 w-4 mr-1" />
-                Changer
+                Nouveau
               </Button>
               <Button
                 type="button"
@@ -162,11 +176,7 @@ export function ImageUpload({
           </>
         ) : (
           // Upload mode
-          <button
-            type="button"
-            onClick={handleButtonClick}
-            className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors p-4"
-          >
+          <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground hover:text-foreground transition-colors p-4">
             {uploading ? (
               <>
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -179,9 +189,29 @@ export function ImageUpload({
                   <span className="hidden sm:inline">Cliquer ou glisser pour télécharger</span>
                   <span className="sm:hidden">Appuyer pour télécharger</span>
                 </span>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLibraryOpen(true)}
+                  >
+                    <FolderOpen className="h-4 w-4 mr-1" />
+                    Bibliothèque
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => inputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    Télécharger
+                  </Button>
+                </div>
               </>
             )}
-          </button>
+          </div>
         )}
       </div>
 
@@ -192,6 +222,17 @@ export function ImageUpload({
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+      />
+
+      {/* Media Library */}
+      <MediaLibrary
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        orgId={orgId}
+        onSelect={handleLibrarySelect}
+        multiple={false}
+        fileType="images"
+        title="Sélectionner une image"
       />
     </div>
   );
