@@ -32,7 +32,7 @@ import { useScope } from "@/hooks/use-scope";
 
 type ViewMode = "table" | "grid";
 
-export default function ArticleListItemsAdminPage() {
+export default function ArticlesPage() {
   const scope = useScope();
 
   // Local state
@@ -47,17 +47,17 @@ export default function ArticleListItemsAdminPage() {
 
   const handleLimitChange = (newLimit: number) => {
     setLimit(newLimit);
-    setPage(1); // Reset to first page when changing limit
+    setPage(1);
   };
 
   // Fetch articles from Prisma API (with pagination)
-  const [articles, setArticleListItems] = useState<ArticleListItem[]>([]);
+  const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchArticleListItems = useCallback(async () => {
+  const fetchArticles = useCallback(async () => {
     if (!scope.orgId || !scope.etbId) {
-      setArticleListItems([]);
+      setArticles([]);
       setPagination(null);
       setIsLoading(false);
       return;
@@ -85,14 +85,14 @@ export default function ArticleListItemsAdminPage() {
       const response = await fetch(`/api/articles?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setArticleListItems(data.articles);
+        setArticles(data.articles);
         setPagination(data.pagination);
       } else {
-        toast.error("Failed to fetch articles");
+        toast.error("Erreur lors du chargement des articles");
       }
     } catch (error) {
       console.error("Error fetching articles:", error);
-      toast.error("Error loading articles");
+      toast.error("Erreur lors du chargement des articles");
     } finally {
       setIsLoading(false);
     }
@@ -107,13 +107,28 @@ export default function ArticleListItemsAdminPage() {
   ]);
 
   useEffect(() => {
-    fetchArticleListItems();
-  }, [fetchArticleListItems]);
+    fetchArticles();
+  }, [fetchArticles]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
   }, [filterPublish, filterType, searchQuery]);
+
+  const getProductTypeLabel = (type?: string) => {
+    switch (type) {
+      case "PHYSICAL_PRODUCT":
+        return "Produit physique";
+      case "DIGITAL_PRODUCT":
+        return "Produit numérique";
+      case "SERVICE":
+        return "Service";
+      case "WEBINAR":
+        return "Webinaire";
+      default:
+        return type?.replace(/_/g, " ") || "-";
+    }
+  };
 
   const getProductTypeColor = (type?: string) => {
     switch (type) {
@@ -130,113 +145,96 @@ export default function ArticleListItemsAdminPage() {
     }
   };
 
-  const formatTimestamp = (date?: string | null) => {
-    if (!date) return "-";
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="w-6 h-6" />
-            ArticleListItems Management
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Catalog from PostgreSQL (with pagination)
-          </p>
-        </div>
+      <div className="flex items-center gap-2">
+        <Package className="w-5 h-5 text-primary" />
+        <h1 className="text-xl font-semibold">Articles</h1>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search articles..."
+            placeholder="Rechercher un article..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             variant={filterPublish === undefined ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterPublish(undefined)}
           >
-            All
+            Tous
           </Button>
           <Button
             variant={filterPublish === true ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterPublish(true)}
           >
-            Published
+            Publiés
           </Button>
           <Button
             variant={filterPublish === false ? "default" : "outline"}
             size="sm"
             onClick={() => setFilterPublish(false)}
           >
-            Draft
+            Brouillons
           </Button>
         </div>
       </div>
 
       {/* Content Area */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
         ) : (
           <>
             {/* Empty State */}
-            {articles.length === 0 && !isLoading && (
-              <Card className="p-12 text-center">
-                <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No ArticleListItems Found
+            {articles.length === 0 && (
+              <Card className="p-8 text-center">
+                <Package className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-1">
+                  Aucun article trouvé
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {!scope.orgId || !scope.etbId
-                    ? "Select an organization and establishment from the admin shell"
-                    : "Try adjusting your filters"}
+                    ? "Sélectionnez une organisation et un établissement"
+                    : "Essayez de modifier vos filtres"}
                 </p>
               </Card>
             )}
 
-            {/* ArticleListItems List/Grid */}
+            {/* Articles List/Grid */}
             {articles.length > 0 && (
               <>
                 {/* Toolbar */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
-                    {/* {articles.length} articles
-                    {pagination &&
-                      ` (page ${page} of ${pagination.totalPages})`} */}
-                    {pagination && <div>{pagination.total} total articles</div>}
+                    {pagination && <span>{pagination.total} articles</span>}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button
-                      variant={viewMode === "table" ? "default" : "outline"}
-                      size="sm"
+                      variant={viewMode === "table" ? "default" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => setViewMode("table")}
                     >
                       <List className="w-4 h-4" />
                     </Button>
                     <Button
-                      variant={viewMode === "grid" ? "default" : "outline"}
-                      size="sm"
+                      variant={viewMode === "grid" ? "default" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => setViewMode("grid")}
                     >
                       <Grid3x3 className="w-4 h-4" />
@@ -246,22 +244,21 @@ export default function ArticleListItemsAdminPage() {
 
                 {/* Table View (Desktop) */}
                 {viewMode === "table" && (
-                  <div className="hidden md:block rounded-lg border bg-card">
+                  <div className="hidden lg:block rounded-lg border bg-card overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>ArticleListItem</TableHead>
-                          <TableHead>Reference</TableHead>
+                          <TableHead>Article</TableHead>
+                          <TableHead>Référence</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Last Updated</TableHead>
+                          <TableHead>Statut</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {articles.map((article: ArticleListItem) => (
                           <TableRow
                             key={article.id}
-                            className="hover:bg-muted/50"
+                            className="hover:bg-muted/50 cursor-pointer"
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -282,10 +279,10 @@ export default function ArticleListItemsAdminPage() {
                                 )}
                                 <div className="min-w-0">
                                   <p className="font-medium truncate">
-                                    {article.designation || "Untitled"}
+                                    {article.designation || "Sans titre"}
                                   </p>
                                   {article.shortDescription && (
-                                    <p className="text-sm text-muted-foreground truncate">
+                                    <p className="text-sm text-muted-foreground truncate max-w-xs">
                                       {article.shortDescription}
                                     </p>
                                   )}
@@ -302,25 +299,22 @@ export default function ArticleListItemsAdminPage() {
                                     article.productType,
                                   )}
                                 >
-                                  {article.productType.replace(/_/g, " ")}
+                                  {getProductTypeLabel(article.productType)}
                                 </Badge>
                               )}
                             </TableCell>
                             <TableCell>
                               {article.isPublish ? (
-                                <Badge variant="default" className="gap-1">
+                                <Badge variant="default" className="gap-1 bg-green-600">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  Published
+                                  Publié
                                 </Badge>
                               ) : (
                                 <Badge variant="secondary" className="gap-1">
                                   <XCircle className="w-3 h-3" />
-                                  Draft
+                                  Brouillon
                                 </Badge>
                               )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatTimestamp(article.updatedAt)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -329,27 +323,27 @@ export default function ArticleListItemsAdminPage() {
                   </div>
                 )}
 
-                {/* Grid View (Mobile & Desktop) */}
+                {/* Grid View */}
                 {viewMode === "grid" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}
                   </div>
                 )}
 
-                {/* Mobile Table View */}
+                {/* Mobile List View */}
                 {viewMode === "table" && (
-                  <div className="md:hidden space-y-4">
+                  <div className="lg:hidden space-y-3">
                     {articles.map((article) => (
                       <ArticleCard key={article.id} article={article} />
                     ))}
                   </div>
                 )}
 
-                {/* Pagination at bottom */}
+                {/* Pagination */}
                 {pagination && (
-                  <div className="border-t pt-4">
+                  <div className="pt-4">
                     <Pagination
                       pagination={pagination}
                       onPageChange={setPage}
