@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,21 +25,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { S3_HOST } from "@/lib/config";
-
-type MediaFile = {
-  key: string;
-  filename: string;
-  extension: string;
-  size: number;
-  lastModified: string | null;
-  isImage: boolean;
-  isDocument: boolean;
-  type: "image" | "document" | "other";
-};
+import { useAtom } from "jotai";
+import { mediaCacheHelpersAtom } from "@/lib/store/media-cache";
+import type { MediaFile } from "@/lib/store/media-cache";
 
 // Get thumbnail URL for non-AVIF images
-// Thumbnails are stored at: {orgId}/thumbnails/{filename}.webp
-function getThumbnailUrl(file: MediaFile): string {
+// Thumbnails are generated on-the-fly via query parameter: ?thumbnail=300x300
+function getThumbnailUrl(file: MediaFile, size = 300): string {
   if (!file.isImage) {
     return "";
   }
@@ -49,14 +41,8 @@ function getThumbnailUrl(file: MediaFile): string {
     return `${S3_HOST}/${file.key}`;
   }
 
-  // For other images, try thumbnail first
-  // Thumbnail pattern: replace {orgId}/filename.ext with {orgId}/thumbnails/filename.webp
-  const parts = file.key.split("/");
-  const orgId = parts[0];
-  const filename = parts.slice(1).join("/");
-  const nameWithoutExt = filename.substring(0, filename.lastIndexOf(".")) || filename;
-
-  return `${S3_HOST}/${orgId}/thumbnails/${nameWithoutExt}.webp`;
+  // For other images, use thumbnail query parameter
+  return `${S3_HOST}/${file.key}?thumbnail=${size}x${size}`;
 }
 
 // Get original image URL
@@ -93,9 +79,13 @@ export function MediaLibrary({
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [thumbnailErrors, setThumbnailErrors] = useState<Set<string>>(new Set());
 
-  const fetchFiles = useCallback(async () => {
-    if (!orgId) return;
+  const [cacheHelpers, dispatchCache] = useAtom(mediaCacheHelpersAtom);
 
+  // Use a ref to track background fetch to avoid infinite loops
+  const backgroundFetchRef = useRef(false);
+
+  // Fetch files from API (used by handlers)
+  const fetchFilesFromApi = useCallback(async () => {
     setLoading(true);
     try {
       const type = activeTab === "all" ? "" : `&type=${activeTab}`;
@@ -106,20 +96,93 @@ export function MediaLibrary({
         throw new Error(data.error || "Erreur lors du chargement");
       }
 
-      setFiles(data.files || []);
+      const fetchedFiles = data.files || [];
+      setFiles(fetchedFiles);
+
+      // Update cache
+      dispatchCache({ action: "set", orgId, files: fetchedFiles });
     } catch (error) {
       console.error("Error fetching files:", error);
     } finally {
       setLoading(false);
     }
-  }, [orgId, activeTab]);
+  }, [orgId, activeTab, dispatchCache]);
 
   useEffect(() => {
-    if (open) {
-      fetchFiles();
-      setSelectedKeys(new Set());
+    if (!open || !orgId) return;
+
+    let cancelled = false;
+
+    async function initFetch() {
+      // Try to get cached files first
+      const cachedFiles = cacheHelpers.getCachedFiles(orgId);
+      if (cachedFiles) {
+        setFiles(cachedFiles);
+        setLoading(false);
+        // Continue to fetch fresh data in background (only once)
+        if (!backgroundFetchRef.current) {
+          backgroundFetchRef.current = true;
+          try {
+            const type = activeTab === "all" ? "" : `&type=${activeTab}`;
+            const response = await fetch(`/api/files?orgId=${orgId}${type}`);
+            const data = await response.json();
+
+            if (cancelled) return;
+
+            if (response.ok) {
+              const fetchedFiles = data.files || [];
+              setFiles(fetchedFiles);
+              dispatchCache({ action: "set", orgId, files: fetchedFiles });
+            }
+          } catch (error) {
+            console.error("Background fetch error:", error);
+          } finally {
+            if (!cancelled) {
+              backgroundFetchRef.current = false;
+            }
+          }
+        }
+        return;
+      }
+
+      // No cache, fetch from API
+      setLoading(true);
+      try {
+        const type = activeTab === "all" ? "" : `&type=${activeTab}`;
+        const response = await fetch(`/api/files?orgId=${orgId}${type}`);
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        if (!response.ok) {
+          throw new Error(data.error || "Erreur lors du chargement");
+        }
+
+        const fetchedFiles = data.files || [];
+        setFiles(fetchedFiles);
+
+        // Update cache
+        dispatchCache({ action: "set", orgId, files: fetchedFiles });
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Error fetching files:", error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
-  }, [open, fetchFiles]);
+
+    // Reset and fetch
+    setSelectedKeys(new Set());
+    backgroundFetchRef.current = false;
+    initFetch();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, orgId, activeTab]); // Intentionally omitting cacheHelpers/dispatchCache to avoid infinite loops
 
   // Filter files by search
   const filteredFiles = files.filter((file) =>
@@ -169,8 +232,10 @@ export function MediaLibrary({
         throw new Error(data.error || "Erreur lors de la suppression");
       }
 
+      // Invalidate cache and refresh
+      dispatchCache({ action: "invalidate", orgId });
       setSelectedKeys(new Set());
-      fetchFiles();
+      fetchFilesFromApi();
     } catch (error) {
       console.error("Error deleting files:", error);
       alert(error instanceof Error ? error.message : "Erreur lors de la suppression");
@@ -199,7 +264,9 @@ export function MediaLibrary({
       });
 
       await Promise.all(uploadPromises);
-      fetchFiles();
+      // Invalidate cache and refresh
+      dispatchCache({ action: "invalidate", orgId });
+      fetchFilesFromApi();
     } catch (error) {
       console.error("Error uploading files:", error);
       alert("Erreur lors du téléchargement");

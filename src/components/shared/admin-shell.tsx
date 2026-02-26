@@ -398,7 +398,7 @@ function OrgSwitcher({
 }
 
 function UserMenu() {
-  const [user, setUser] = React.useState<any>(null);
+  const [user, setUser] = React.useState<unknown>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
