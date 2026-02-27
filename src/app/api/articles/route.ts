@@ -115,7 +115,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { idOrg, idEtb, designation, slug: providedSlug, shortDescription, media, categoryIds, tagIds, isPublish } = body;
+    const {
+      idOrg, idEtb, designation, slug: providedSlug, shortDescription, media,
+      categoryIds, tagIds, isPublish,
+      // Pricing fields
+      salePrice, purchasePrice, fees, profitMargin, profitType, taxId,
+      // Discount fields
+      discountPercent, discountStartDate, discountEndDate
+    } = body;
 
     // Validate required fields
     if (!idOrg || !idEtb) {
@@ -238,6 +245,60 @@ export async function POST(request: NextRequest) {
           idEtb,
           idArticle: articleId,
           idDeposit: defaultDeposit.id,
+        },
+      });
+    }
+
+    // Get first tax as default if no taxId provided
+    let finalTaxId = taxId;
+    if (!finalTaxId) {
+      const firstTax = await prisma.tax.findFirst({
+        where: { idOrg, idEtb },
+      });
+      finalTaxId = firstTax?.id || null;
+    }
+
+    // Create pricing record
+    await prisma.pricing.create({
+      data: {
+        id: `price-${nanoid()}`,
+        idOrg,
+        idEtb,
+        idArticle: articleId,
+        idTax: finalTaxId,
+        purchasePrice: purchasePrice || 0,
+        fees: fees || 0,
+        profitType: profitType || "PERCENT",
+        profitMargin: profitMargin || 0,
+        salePrice: salePrice || 0,
+        effectDate: new Date(),
+      },
+    });
+
+    // Create discount record if discount percentage is provided
+    if (discountPercent && discountPercent > 0) {
+      const discountId = `disc-${nanoid()}`;
+
+      // Generate discount reference
+      const lastDiscount = await prisma.discount.findFirst({
+        where: { idOrg, idEtb },
+        orderBy: { reference: "desc" },
+      });
+      const lastDiscRef = lastDiscount?.reference || "DISC00000";
+      const discRefNum = (parseInt(lastDiscRef.replace("DISC", "")) || 0) + 1;
+      const discountRef = `DISC${String(discRefNum).padStart(5, "0")}`;
+
+      await prisma.discount.create({
+        data: {
+          id: discountId,
+          idOrg,
+          idEtb,
+          reference: discountRef,
+          value: discountPercent,
+          startDate: discountStartDate ? new Date(discountStartDate) : new Date(),
+          endDate: discountEndDate ? new Date(discountEndDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Default 1 year
+          idArticle: articleId,
+          profitType: "PERCENT",
         },
       });
     }

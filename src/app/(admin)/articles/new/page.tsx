@@ -11,6 +11,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MediaLibrary } from "@/components/media/media-library";
 import { S3_HOST } from "@/lib/config";
 import { toast } from "sonner";
@@ -23,6 +30,8 @@ import {
   X,
   Loader2,
   Upload,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useScope } from "@/hooks/use-scope";
 
@@ -37,6 +46,12 @@ type Tag = {
   id: string;
   name: string;
   nameFr: string | null;
+};
+
+type Tax = {
+  id: string;
+  designation: string | null;
+  value: number;
 };
 
 // Recursive category tree component
@@ -107,9 +122,52 @@ export default function NewArticlePage() {
   // Data state
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+
+  // Pricing state
+  const [salePrice, setSalePrice] = useState(0);
+  const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [fees, setFees] = useState(0);
+  const [profitMargin, setProfitMargin] = useState(0);
+  const [profitType, setProfitType] = useState<"PERCENT" | "VALUE">("VALUE");
+  const [taxId, setTaxId] = useState<string>("");
+
+  // Discount state
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountStartDate, setDiscountStartDate] = useState("");
+  const [discountEndDate, setDiscountEndDate] = useState("");
+
+  // Get tax rate from selected tax
+  const getTaxRate = useCallback(() => {
+    const selectedTax = taxes.find((t) => t.id === taxId);
+    return selectedTax?.value || 0;
+  }, [taxes, taxId]);
+
+  // Calculate sale price with tax
+  const calculateSalePrice = useCallback(
+    (
+      purchase: number,
+      feesVal: number,
+      margin: number,
+      type: "PERCENT" | "VALUE",
+      taxRate: number,
+    ) => {
+      const cost = purchase + feesVal;
+      let basePrice: number;
+      if (type === "PERCENT") {
+        basePrice = cost * (1 + margin / 100);
+      } else {
+        basePrice = cost + margin;
+      }
+      // Apply tax to get final price
+      return basePrice * (1 + taxRate / 100);
+    },
+    [],
+  );
 
   // Handle designation change - auto-generate slug
   const handleDesignationChange = (value: string) => {
@@ -123,9 +181,10 @@ export default function NewArticlePage() {
 
     setIsLoading(true);
     try {
-      const [categoriesRes, tagsRes] = await Promise.all([
+      const [categoriesRes, tagsRes, taxesRes] = await Promise.all([
         fetch(`/api/categories?orgId=${scope.orgId}&etbId=${scope.etbId}`),
         fetch("/api/tags"),
+        fetch(`/api/taxes?idOrg=${scope.orgId}&idEtb=${scope.etbId}`),
       ]);
 
       if (categoriesRes.ok) {
@@ -136,6 +195,16 @@ export default function NewArticlePage() {
       if (tagsRes.ok) {
         const data = await tagsRes.json();
         setTags(data.tags || []);
+      }
+
+      if (taxesRes.ok) {
+        const data = await taxesRes.json();
+        const taxesList = data.taxes || [];
+        setTaxes(taxesList);
+        // Set first tax as default
+        if (taxesList.length > 0) {
+          setTaxId(taxesList[0].id);
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -192,14 +261,16 @@ export default function NewArticlePage() {
     setSelectedCategories((prev) =>
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId]
+        : [...prev, categoryId],
     );
   };
 
   // Toggle tag
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId],
     );
   };
 
@@ -230,6 +301,17 @@ export default function NewArticlePage() {
           categoryIds: selectedCategories,
           tagIds: selectedTags,
           isPublish,
+          // Pricing fields
+          salePrice,
+          purchasePrice,
+          fees,
+          profitMargin,
+          profitType,
+          taxId,
+          // Discount fields
+          discountPercent,
+          discountStartDate,
+          discountEndDate,
         }),
       });
 
@@ -282,7 +364,10 @@ export default function NewArticlePage() {
           <Skeleton className="h-32 w-full" />
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3" style={{marginBottom: "80px"}}>
+        <div
+          className="grid gap-4 lg:grid-cols-3"
+          style={{ marginBottom: "80px" }}
+        >
           {/* Main content */}
           <div className="lg:col-span-2 space-y-4">
             {/* Designation & Slug */}
@@ -358,7 +443,12 @@ export default function NewArticlePage() {
             {/* Tags */}
             <Card className="p-4">
               <div className="space-y-3">
-                <Label className="text-xs">Tags</Label>
+                <div>
+                  <Label className="text-xs">Tags</Label>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                    Important pour une meilleure visibilité sur SoldX
+                  </p>
+                </div>
                 {tags.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Aucun tag disponible
@@ -381,6 +471,292 @@ export default function NewArticlePage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </Card>
+
+            {/* Pricing */}
+            <Card className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Prix de vente</Label>
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedPricing(!showAdvancedPricing)}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    {showAdvancedPricing ? "Simple" : "Avancé"}
+                    {showAdvancedPricing ? (
+                      <ChevronUp className="w-3 h-3" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Simple pricing - just sale price */}
+                {!showAdvancedPricing && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={salePrice}
+                        onChange={(e) =>
+                          setSalePrice(parseFloat(e.target.value) || 0)
+                        }
+                        placeholder="0.00"
+                        className="pr-8"
+                        step="0.01"
+                        min="0"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        TND
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Advanced pricing */}
+                {showAdvancedPricing && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Purchase Price */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Prix d&apos;achat
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={purchasePrice}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setPurchasePrice(val);
+                              setSalePrice(
+                                calculateSalePrice(
+                                  val,
+                                  fees,
+                                  profitMargin,
+                                  profitType,
+                                  getTaxRate(),
+                                ),
+                              );
+                            }}
+                            placeholder="0.00"
+                            className="pr-8"
+                            step="0.01"
+                            min="0"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            TND
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Fees */}
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Frais
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={fees}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setFees(val);
+                              setSalePrice(
+                                calculateSalePrice(
+                                  purchasePrice,
+                                  val,
+                                  profitMargin,
+                                  profitType,
+                                  getTaxRate(),
+                                ),
+                              );
+                            }}
+                            placeholder="0.00"
+                            className="pr-8"
+                            step="0.01"
+                            min="0"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            TND
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Profit Type & Margin */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Type de marge
+                        </Label>
+                        <Select
+                          value={profitType}
+                          onValueChange={(val: "PERCENT" | "VALUE") => {
+                            setProfitType(val);
+                            setSalePrice(
+                              calculateSalePrice(
+                                purchasePrice,
+                                fees,
+                                profitMargin,
+                                val,
+                                getTaxRate(),
+                              ),
+                            );
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PERCENT">
+                              Pourcentage %
+                            </SelectItem>
+                            <SelectItem value="VALUE">Valeur fixe</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Marge {profitType === "PERCENT" ? "(%)" : "(TND)"}
+                        </Label>
+                        <Input
+                          type="number"
+                          value={profitMargin}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setProfitMargin(val);
+                            setSalePrice(
+                              calculateSalePrice(
+                                purchasePrice,
+                                fees,
+                                val,
+                                profitType,
+                                getTaxRate(),
+                              ),
+                            );
+                          }}
+                          placeholder="0"
+                          step={profitType === "PERCENT" ? "1" : "0.01"}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tax */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Taxe <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={taxId}
+                        onValueChange={(val) => {
+                          setTaxId(val);
+                          // Get tax rate and recalculate
+                          const tax = taxes.find((t) => t.id === val);
+                          const taxRate = tax?.value || 0;
+                          setSalePrice(
+                            calculateSalePrice(
+                              purchasePrice,
+                              fees,
+                              profitMargin,
+                              profitType,
+                              taxRate,
+                            ),
+                          );
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une taxe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {taxes.map((tax) => (
+                            <SelectItem key={tax.id} value={tax.id}>
+                              {tax.designation || tax.id} ({tax.value}%)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Calculated Sale Price */}
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">
+                          Prix de vente calculé
+                        </Label>
+                        <span className="text-lg font-semibold">
+                          {salePrice.toFixed(2)} TND
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Discount */}
+            <Card className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Remise</Label>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                    Requis pour afficher l&apos;article sur SoldX
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Discount Percent */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Pourcentage (%)
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        value={discountPercent}
+                        onChange={(e) =>
+                          setDiscountPercent(parseFloat(e.target.value) || 0)
+                        }
+                        placeholder="0"
+                        className="pr-8"
+                        step="1"
+                        min="0"
+                        max="100"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        %
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Start Date */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Date de début
+                    </Label>
+                    <Input
+                      type="date"
+                      value={discountStartDate}
+                      onChange={(e) => setDiscountStartDate(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  {/* End Date */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Date de fin
+                    </Label>
+                    <Input
+                      type="date"
+                      value={discountEndDate}
+                      onChange={(e) => setDiscountEndDate(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -420,7 +796,8 @@ export default function NewArticlePage() {
               ) : (
                 <div className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-2 bg-muted/20">
                   <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    <Button className="mx-auto"
+                    <Button
+                      className="mx-auto"
                       type="button"
                       variant="outline"
                       size="sm"
@@ -457,10 +834,7 @@ export default function NewArticlePage() {
                     Visible publiquement
                   </p>
                 </div>
-                <Switch
-                  checked={isPublish}
-                  onCheckedChange={setIsPublish}
-                />
+                <Switch checked={isPublish} onCheckedChange={setIsPublish} />
               </div>
             </Card>
           </div>
