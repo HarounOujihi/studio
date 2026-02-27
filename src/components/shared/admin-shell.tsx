@@ -119,6 +119,11 @@ const navigation: NavSection[] = [
         href: "/customers",
         icon: <Users className="h-4 w-4" />,
       },
+      {
+        title: "Providers",
+        href: "/providers",
+        icon: <Users className="h-4 w-4" />,
+      },
     ],
   },
   {

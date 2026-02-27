@@ -102,6 +102,7 @@ export type MovementListItem = Pick<
 // ============================================================================
 
 export type Client = Prisma.ClientGetPayload<{}>;
+export type Nature = Prisma.Nature;
 
 export type ClientListItem = Pick<
   Client,
@@ -111,9 +112,49 @@ export type ClientListItem = Pick<
   | "reference"
   | "firstName"
   | "lastName"
+  | "companyName"
   | "email"
   | "tel"
->;
+  | "nature"
+  | "taxIdNumber"
+  | "note"
+> & {
+  createdAt?: string | null;
+  address?: {
+    street: string | null;
+    city: string | null;
+    country: string | null;
+  } | null;
+};
+
+// ============================================================================
+// Provider Types
+// ============================================================================
+
+export type Provider = Prisma.ProviderGetPayload<{}>;
+
+export type ProviderListItem = Pick<
+  Provider,
+  | "id"
+  | "idOrg"
+  | "idEtb"
+  | "reference"
+  | "firstName"
+  | "lastName"
+  | "companyName"
+  | "email"
+  | "tel"
+  | "nature"
+  | "taxIdNumber"
+  | "note"
+> & {
+  createdAt?: string | null;
+  address?: {
+    street: string | null;
+    city: string | null;
+    country: string | null;
+  } | null;
+};
 
 // ============================================================================
 // Common Types

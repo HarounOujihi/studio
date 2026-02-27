@@ -32,8 +32,10 @@ import {
   Plus,
   ChevronRight,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { useScope } from "@/hooks/use-scope";
+import { ArticleImportDialog } from "@/components/articles/article-import-dialog";
 
 type ViewMode = "table" | "grid";
 
@@ -198,6 +200,7 @@ export default function ArticlesPage() {
   const [filterType, setFilterType] = useState<string>("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const handleLimitChange = (newLimit: number) => {
     setLimit(newLimit);
@@ -277,12 +280,22 @@ export default function ArticlesPage() {
           <Package className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-semibold">Articles</h1>
         </div>
-        <Button asChild size="sm">
-          <Link href="/articles/new">
-            <Plus className="w-4 h-4 mr-1" />
-            Nouveau
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportDialogOpen(true)}
+          >
+            <Upload className="w-4 h-4 mr-1" />
+            Importer
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/articles/new">
+              <Plus className="w-4 h-4 mr-1" />
+              Nouveau
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -441,6 +454,15 @@ export default function ArticlesPage() {
           </>
         )}
       </div>
+
+      {/* Import Dialog */}
+      <ArticleImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        orgId={scope.orgId || ""}
+        etbId={scope.etbId || ""}
+        onSuccess={fetchArticles}
+      />
     </div>
   );
 }

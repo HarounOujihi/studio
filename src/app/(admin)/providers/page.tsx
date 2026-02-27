@@ -27,10 +27,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PaginationData, ClientListItem } from "@/lib/types";
+import { PaginationData, ProviderListItem } from "@/lib/types";
 import { toast } from "sonner";
 import {
-  Users,
+  Truck,
   Search,
   Plus,
   Building2,
@@ -50,7 +50,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function CustomersPage() {
+export default function ProvidersPage() {
   const router = useRouter();
   const scope = useScope();
 
@@ -58,20 +58,20 @@ export default function CustomersPage() {
   const [filterNature, setFilterNature] = useState<string>("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [clients, setClients] = useState<ClientListItem[]>([]);
+  const [providers, setProviders] = useState<ProviderListItem[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState<ClientListItem | null>(null);
+  const [providerToDelete, setProviderToDelete] = useState<ProviderListItem | null>(null);
 
   const handleLimitChange = (newLimit: number) => {
     setLimit(newLimit);
     setPage(1);
   };
 
-  const fetchClients = useCallback(async () => {
+  const fetchProviders = useCallback(async () => {
     if (!scope.orgId || !scope.etbId) {
-      setClients([]);
+      setProviders([]);
       setPagination(null);
       setIsLoading(false);
       return;
@@ -93,40 +93,40 @@ export default function CustomersPage() {
         params.append("search", searchQuery);
       }
 
-      const response = await fetch(`/api/clients?${params}`);
+      const response = await fetch(`/api/providers?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setClients(data.clients);
+        setProviders(data.providers);
         setPagination(data.pagination);
       } else {
-        toast.error("Erreur lors du chargement des clients");
+        toast.error("Erreur lors du chargement des fournisseurs");
       }
     } catch {
-      toast.error("Erreur lors du chargement des clients");
+      toast.error("Erreur lors du chargement des fournisseurs");
     } finally {
       setIsLoading(false);
     }
   }, [scope.orgId, scope.etbId, page, limit, filterNature, searchQuery]);
 
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    fetchProviders();
+  }, [fetchProviders]);
 
   useEffect(() => {
     setPage(1);
   }, [filterNature, searchQuery]);
 
   const handleDelete = async () => {
-    if (!clientToDelete) return;
+    if (!providerToDelete) return;
 
     try {
-      const response = await fetch(`/api/clients/${clientToDelete.id}`, {
+      const response = await fetch(`/api/providers/${providerToDelete.id}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        toast.success("Client supprimé avec succès");
-        fetchClients();
+        toast.success("Fournisseur supprimé avec succès");
+        fetchProviders();
       } else {
         const data = await response.json();
         toast.error(data.error || "Erreur lors de la suppression");
@@ -135,15 +135,15 @@ export default function CustomersPage() {
       toast.error("Erreur lors de la suppression");
     } finally {
       setDeleteDialogOpen(false);
-      setClientToDelete(null);
+      setProviderToDelete(null);
     }
   };
 
-  const getDisplayName = (client: ClientListItem) => {
-    if (client.nature === "COMPANY") {
-      return client.companyName || "Entreprise";
+  const getDisplayName = (provider: ProviderListItem) => {
+    if (provider.nature === "COMPANY") {
+      return provider.companyName || "Entreprise";
     }
-    return `${client.firstName || ""} ${client.lastName || ""}`.trim() || "Sans nom";
+    return `${provider.firstName || ""} ${provider.lastName || ""}`.trim() || "Sans nom";
   };
 
   return (
@@ -151,11 +151,11 @@ export default function CustomersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-semibold">Clients</h1>
+          <Truck className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-semibold">Fournisseurs</h1>
         </div>
         <Button asChild size="sm">
-          <Link href="/customers/new">
+          <Link href="/providers/new">
             <Plus className="w-4 h-4 mr-1" />
             Nouveau
           </Link>
@@ -167,7 +167,7 @@ export default function CustomersPage() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Rechercher un client..."
+            placeholder="Rechercher un fournisseur..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -211,29 +211,29 @@ export default function CustomersPage() {
         ) : (
           <>
             {/* Empty State */}
-            {clients.length === 0 && (
+            {providers.length === 0 && (
               <Card className="p-8 text-center">
-                <Users className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                <Truck className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-1">
-                  Aucun client trouvé
+                  Aucun fournisseur trouvé
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {!scope.orgId || !scope.etbId
                     ? "Sélectionnez une organisation et un établissement"
-                    : "Essayez de modifier vos filtres ou ajoutez un nouveau client"}
+                    : "Essayez de modifier vos filtres ou ajoutez un nouveau fournisseur"}
                 </p>
               </Card>
             )}
 
-            {/* Clients List */}
-            {clients.length > 0 && (
+            {/* Providers List */}
+            {providers.length > 0 && (
               <>
                 {/* Table View (Desktop) */}
                 <div className="hidden md:block rounded-lg border bg-card overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Client</TableHead>
+                        <TableHead>Fournisseur</TableHead>
                         <TableHead>Contact</TableHead>
                         <TableHead>Adresse</TableHead>
                         <TableHead>Type</TableHead>
@@ -241,54 +241,54 @@ export default function CustomersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {clients.map((client) => (
+                      {providers.map((provider) => (
                         <TableRow
-                          key={client.id}
+                          key={provider.id}
                           className="hover:bg-muted/50 cursor-pointer"
-                          onClick={() => router.push(`/customers/${client.id}`)}
+                          onClick={() => router.push(`/providers/${provider.id}`)}
                         >
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                {client.nature === "COMPANY" ? (
+                                {provider.nature === "COMPANY" ? (
                                   <Building2 className="w-5 h-5 text-muted-foreground" />
                                 ) : (
                                   <User className="w-5 h-5 text-muted-foreground" />
                                 )}
                               </div>
                               <div>
-                                <p className="font-medium">{getDisplayName(client)}</p>
+                                <p className="font-medium">{getDisplayName(provider)}</p>
                                 <p className="text-xs text-muted-foreground font-mono">
-                                  {client.reference}
+                                  {provider.reference}
                                 </p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
-                              {client.email && (
+                              {provider.email && (
                                 <div className="flex items-center gap-1 text-sm">
                                   <Mail className="w-3 h-3 text-muted-foreground" />
-                                  <span className="truncate max-w-[200px]">{client.email}</span>
+                                  <span className="truncate max-w-[200px]">{provider.email}</span>
                                 </div>
                               )}
-                              {client.tel && (
+                              {provider.tel && (
                                 <div className="flex items-center gap-1 text-sm">
                                   <Phone className="w-3 h-3 text-muted-foreground" />
-                                  <span>{client.tel}</span>
+                                  <span>{provider.tel}</span>
                                 </div>
                               )}
-                              {!client.email && !client.tel && (
+                              {!provider.email && !provider.tel && (
                                 <span className="text-muted-foreground text-sm">-</span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            {client.address ? (
+                            {provider.address ? (
                               <div className="flex items-center gap-1 text-sm">
                                 <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
                                 <span className="truncate max-w-[200px]">
-                                  {[client.address.city, client.address.country]
+                                  {[provider.address.city, provider.address.country]
                                     .filter(Boolean)
                                     .join(", ")}
                                 </span>
@@ -301,12 +301,12 @@ export default function CustomersPage() {
                             <Badge
                               variant="outline"
                               className={
-                                client.nature === "COMPANY"
+                                provider.nature === "COMPANY"
                                   ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
                                   : "bg-green-500/10 text-green-700 border-green-500/20"
                               }
                             >
-                              {client.nature === "COMPANY" ? "Entreprise" : "Particulier"}
+                              {provider.nature === "COMPANY" ? "Entreprise" : "Particulier"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -320,7 +320,7 @@ export default function CustomersPage() {
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    router.push(`/customers/${client.id}`);
+                                    router.push(`/providers/${provider.id}`);
                                   }}
                                 >
                                   <Eye className="w-4 h-4 mr-2" />
@@ -330,7 +330,7 @@ export default function CustomersPage() {
                                   className="text-destructive"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setClientToDelete(client);
+                                    setProviderToDelete(provider);
                                     setDeleteDialogOpen(true);
                                   }}
                                 >
@@ -348,56 +348,56 @@ export default function CustomersPage() {
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-3">
-                  {clients.map((client) => (
+                  {providers.map((provider) => (
                     <Card
-                      key={client.id}
+                      key={provider.id}
                       className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => router.push(`/customers/${client.id}`)}
+                      onClick={() => router.push(`/providers/${provider.id}`)}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                            {client.nature === "COMPANY" ? (
+                            {provider.nature === "COMPANY" ? (
                               <Building2 className="w-5 h-5 text-muted-foreground" />
                             ) : (
                               <User className="w-5 h-5 text-muted-foreground" />
                             )}
                           </div>
                           <div>
-                            <p className="font-medium">{getDisplayName(client)}</p>
+                            <p className="font-medium">{getDisplayName(provider)}</p>
                             <p className="text-xs text-muted-foreground font-mono">
-                              {client.reference}
+                              {provider.reference}
                             </p>
                           </div>
                         </div>
                         <Badge
                           variant="outline"
                           className={
-                            client.nature === "COMPANY"
+                            provider.nature === "COMPANY"
                               ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
                               : "bg-green-500/10 text-green-700 border-green-500/20"
                           }
                         >
-                          {client.nature === "COMPANY" ? "Entreprise" : "Particulier"}
+                          {provider.nature === "COMPANY" ? "Entreprise" : "Particulier"}
                         </Badge>
                       </div>
                       <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                        {client.email && (
+                        {provider.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="w-4 h-4" />
-                            {client.email}
+                            {provider.email}
                           </div>
                         )}
-                        {client.tel && (
+                        {provider.tel && (
                           <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            {client.tel}
+                            {provider.tel}
                           </div>
                         )}
-                        {client.address && (
+                        {provider.address && (
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
-                            {[client.address.city, client.address.country]
+                            {[provider.address.city, provider.address.country]
                               .filter(Boolean)
                               .join(", ")}
                           </div>
@@ -427,10 +427,10 @@ export default function CustomersPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer le client</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer le fournisseur</AlertDialogTitle>
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer{" "}
-              <strong>{clientToDelete ? getDisplayName(clientToDelete) : ""}</strong> ?
+              <strong>{providerToDelete ? getDisplayName(providerToDelete) : ""}</strong> ?
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
