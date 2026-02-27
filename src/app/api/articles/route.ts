@@ -121,7 +121,9 @@ export async function POST(request: NextRequest) {
       // Pricing fields
       salePrice, purchasePrice, fees, profitMargin, profitType, taxId,
       // Discount fields
-      discountPercent, discountStartDate, discountEndDate
+      discountPercent, discountStartDate, discountEndDate,
+      // Variants
+      variants
     } = body;
 
     // Validate required fields
@@ -301,6 +303,136 @@ export async function POST(request: NextRequest) {
           profitType: "PERCENT",
         },
       });
+    }
+
+    // Helper function to create variant hierarchy recursively
+    type VariantInput = {
+      id: string;
+      type: string;
+      value: string;
+      designation: string;
+      image?: string;
+      children?: VariantInput[];
+    };
+
+    async function createVariantHierarchy(
+      parentId: string,
+      parentRef: string,
+      parentDesignation: string,
+      variantList: VariantInput[]
+    ): Promise<void> {
+      for (const variant of variantList) {
+        if (!variant.value || !variant.designation) continue;
+
+        // Create sub-article
+        const subArticleId = `art-${nanoid()}`;
+        const subArticleRef = `${parentRef}-${slugify(variant.value)}`;
+        const subArticleSlug = `${slug}-${slugify(variant.value)}`;
+
+        // Check slug uniqueness
+        let uniqueSlug = subArticleSlug;
+        const slugCount = await prisma.article.count({
+          where: { idOrg, idEtb, slug: subArticleSlug },
+        });
+        if (slugCount > 0) {
+          uniqueSlug = `${subArticleSlug}-${Date.now()}`;
+        }
+
+        await prisma.article.create({
+          data: {
+            id: subArticleId,
+            idOrg,
+            idEtb,
+            reference: subArticleRef.toUpperCase(),
+            slug: uniqueSlug,
+            designation: `${parentDesignation} ${variant.designation}`,
+            shortDescription: shortDescription || null,
+            media: variant.image || media || null,
+            isPublish: isPublish ?? false,
+            isSubArticle: true,
+            idParent: parentId,
+            picking: "FIFO",
+            stockManagement: "IN_STOCK",
+            articleManagement: "BY_EAN",
+            saleUnit: firstUnit?.id || null,
+            purchaseUnit: firstUnit?.id || null,
+          },
+        });
+
+        // Create pricing for sub-article
+        await prisma.pricing.create({
+          data: {
+            id: `price-${nanoid()}`,
+            idOrg,
+            idEtb,
+            idArticle: subArticleId,
+            idTax: finalTaxId,
+            purchasePrice: purchasePrice || 0,
+            fees: fees || 0,
+            profitType: profitType || "PERCENT",
+            profitMargin: profitMargin || 0,
+            salePrice: salePrice || 0,
+            effectDate: new Date(),
+          },
+        });
+
+        // Create discount for sub-article if parent has discount
+        if (discountPercent && discountPercent > 0) {
+          const discId = `disc-${nanoid()}`;
+          await prisma.discount.create({
+            data: {
+              id: discId,
+              idOrg,
+              idEtb,
+              reference: `DISC-${subArticleRef}`,
+              value: discountPercent,
+              startDate: discountStartDate ? new Date(discountStartDate) : new Date(),
+              endDate: discountEndDate ? new Date(discountEndDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              idArticle: subArticleId,
+              profitType: "PERCENT",
+            },
+          });
+        }
+
+        // Create VariantProps record
+        const lastVariant = await prisma.variantProps.findFirst({
+          where: { idOrg, idEtb },
+          orderBy: { reference: "desc" },
+        });
+        const lastVarRef = lastVariant?.reference || "VAR00000";
+        const varRefNum = (parseInt(lastVarRef.replace("VAR", "")) || 0) + 1;
+        const variantRef = `VAR${String(varRefNum).padStart(5, "0")}`;
+
+        await prisma.variantProps.create({
+          data: {
+            id: `var-${nanoid()}`,
+            idOrg,
+            idEtb,
+            idArticle: parentId,
+            idSubArticle: subArticleId,
+            reference: variantRef,
+            designation: variant.designation,
+            type: variant.type as "COLOR" | "SIZE" | "NUMBER" | "TEXT",
+            value: variant.value,
+            image: variant.image || null,
+          },
+        });
+
+        // Recursively create children variants
+        if (variant.children && variant.children.length > 0) {
+          await createVariantHierarchy(
+            subArticleId,
+            subArticleRef,
+            `${parentDesignation} ${variant.designation}`,
+            variant.children
+          );
+        }
+      }
+    }
+
+    // Create variants if provided
+    if (variants && Array.isArray(variants) && variants.length > 0) {
+      await createVariantHierarchy(articleId, reference, designation, variants);
     }
 
     return NextResponse.json({ article, success: true });

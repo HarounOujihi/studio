@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MediaLibrary } from "@/components/media/media-library";
+import { ArticleVariants, VariantInput } from "@/components/articles/article-variants";
 import { S3_HOST } from "@/lib/config";
 import { toast } from "sonner";
 import {
@@ -140,6 +141,9 @@ export default function NewArticlePage() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountStartDate, setDiscountStartDate] = useState("");
   const [discountEndDate, setDiscountEndDate] = useState("");
+
+  // Variants state
+  const [variants, setVariants] = useState<VariantInput[]>([]);
 
   // Get tax rate from selected tax
   const getTaxRate = useCallback(() => {
@@ -312,6 +316,8 @@ export default function NewArticlePage() {
           discountPercent,
           discountStartDate,
           discountEndDate,
+          // Variants
+          variants,
         }),
       });
 
@@ -759,6 +765,9 @@ export default function NewArticlePage() {
                 </div>
               </div>
             </Card>
+
+            {/* Variants */}
+            <ArticleVariants variants={variants} onChange={setVariants} />
           </div>
 
           {/* Sidebar */}
