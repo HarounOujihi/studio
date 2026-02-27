@@ -51,6 +51,12 @@ export type ArticleListItem = Omit<
 > & {
   createdAt: string | null;
   updatedAt: string | null;
+  taxedPrice?: number | null;
+  subArticles?: ArticleListItem[];
+  discount?: {
+    value: number;
+    profitType: "PERCENT" | "VALUE";
+  } | null;
 };
 
 // ============================================================================

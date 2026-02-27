@@ -44,10 +44,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build where clause
+    // Build where clause for parent articles only
     const where: any = {
       idOrg,
       idEtb,
+      isSubArticle: false, // Only parent articles
     };
 
     if (isPublish === "true") {
@@ -71,13 +72,135 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     const total = await prisma.article.count({ where });
 
-    // Fetch paginated articles
-    const articles = await prisma.article.findMany({
+    // Fetch paginated parent articles
+    const parentArticles = await prisma.article.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: "desc" },
     });
+
+    // Fetch taxedPrice using raw query for each parent article
+    const parentIds = parentArticles.map((a) => a.id);
+    let pricedParents: Record<string, number | null> = {};
+
+    if (parentIds.length > 0) {
+      const pricedResults = await prisma.$queryRaw<{ id: string; taxedPrice: string | null }[]>`
+        SELECT a.id, public."Article_taxed_price"(a) as "taxedPrice"
+        FROM "Article" a
+        WHERE a.id = ANY(${parentIds}::text[])
+      `;
+      pricedParents = Object.fromEntries(
+        pricedResults.map((r) => [r.id, r.taxedPrice ? parseFloat(r.taxedPrice) : null])
+      );
+    }
+
+    // Fetch active discounts for parent articles
+    const parentDiscounts = await prisma.discount.findMany({
+      where: {
+        idOrg,
+        idEtb,
+        idArticle: { in: parentIds },
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() },
+      },
+      select: {
+        idArticle: true,
+        value: true,
+        profitType: true,
+      },
+    });
+    const discountsByParentId: Record<string, { value: number; profitType: "PERCENT" | "VALUE" }> = {};
+    for (const d of parentDiscounts) {
+      if (d.idArticle) {
+        discountsByParentId[d.idArticle] = {
+          value: d.value,
+          profitType: d.profitType,
+        };
+      }
+    }
+
+    // Fetch ALL sub-articles (all levels) for the parent articles
+    const allSubArticles = await prisma.article.findMany({
+      where: {
+        idOrg,
+        idEtb,
+        isSubArticle: true,
+      },
+      orderBy: { reference: "asc" },
+    });
+
+    // Fetch taxedPrice for all sub-articles
+    let pricedSubs: Record<string, number | null> = {};
+    if (allSubArticles.length > 0) {
+      const subIds = allSubArticles.map((a) => a.id);
+      const pricedSubResults = await prisma.$queryRaw<{ id: string; taxedPrice: string | null }[]>`
+        SELECT a.id, public."Article_taxed_price"(a) as "taxedPrice"
+        FROM "Article" a
+        WHERE a.id = ANY(${subIds}::text[])
+      `;
+      pricedSubs = Object.fromEntries(
+        pricedSubResults.map((r) => [r.id, r.taxedPrice ? parseFloat(r.taxedPrice) : null])
+      );
+    }
+
+    // Fetch active discounts for sub-articles
+    const subArticleIds = allSubArticles.map((a) => a.id);
+    const subDiscounts = await prisma.discount.findMany({
+      where: {
+        idOrg,
+        idEtb,
+        idArticle: { in: subArticleIds },
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() },
+      },
+      select: {
+        idArticle: true,
+        value: true,
+        profitType: true,
+      },
+    });
+    const discountsBySubId: Record<string, { value: number; profitType: "PERCENT" | "VALUE" }> = {};
+    for (const d of subDiscounts) {
+      if (d.idArticle) {
+        discountsBySubId[d.idArticle] = {
+          value: d.value,
+          profitType: d.profitType,
+        };
+      }
+    }
+
+    // Build nested structure recursively
+    type ArticleWithPrice = {
+      id: string;
+      idParent: string | null;
+      [key: string]: unknown;
+      taxedPrice: number | null;
+      discount?: { value: number; profitType: "PERCENT" | "VALUE" } | null;
+      subArticles?: ArticleWithPrice[];
+    };
+
+    function buildNestedArticles(
+      articles: typeof allSubArticles,
+      parentId: string | null
+    ): ArticleWithPrice[] {
+      return articles
+        .filter((a) => a.idParent === parentId)
+        .map((a) => ({
+          ...a,
+          taxedPrice: pricedSubs[a.id] ?? null,
+          discount: discountsBySubId[a.id] ?? null,
+          subArticles: buildNestedArticles(articles, a.id),
+        }));
+    }
+
+    // Combine articles with their taxedPrice, discount and nested sub-articles
+    const articles = parentArticles.map((article) => ({
+      ...article,
+      taxedPrice: pricedParents[article.id] ?? null,
+      discount: discountsByParentId[article.id] ?? null,
+      subArticles: buildNestedArticles(allSubArticles, article.id),
+    }));
 
     return NextResponse.json({
       articles,

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, XCircle, Clock, Box } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Box, ChevronRight } from "lucide-react";
 import { S3_HOST } from "@/lib/config";
 import { ArticleListItem } from "@/lib/types";
 
@@ -40,6 +40,8 @@ const getProductTypeColor = (type?: string) => {
 };
 
 export function ArticleCard({ article, onClick }: ArticleCardProps) {
+  const hasSubArticles = article.subArticles && article.subArticles.length > 0;
+
   return (
     <Card
       className="hover:shadow-md transition-shadow duration-200 cursor-pointer"
@@ -82,25 +84,78 @@ export function ArticleCard({ article, onClick }: ArticleCardProps) {
             {article.shortDescription}
           </p>
         )}
-        <div className="flex flex-wrap gap-1">
-          {article.productType && (
-            <Badge className={`${getProductTypeColor(article.productType)} text-xs`}>
-              {getProductTypeLabel(article.productType)}
-            </Badge>
-          )}
-          {article.isService && (
-            <Badge variant="outline" className="gap-1 text-xs">
-              <Clock className="w-3 h-3" />
-              Service
-            </Badge>
-          )}
-          {article.isDigitalProduct && (
-            <Badge variant="outline" className="gap-1 text-xs">
-              <Box className="w-3 h-3" />
-              Numérique
-            </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1">
+            {article.productType && (
+              <Badge className={`${getProductTypeColor(article.productType)} text-xs`}>
+                {getProductTypeLabel(article.productType)}
+              </Badge>
+            )}
+            {article.isService && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Clock className="w-3 h-3" />
+                Service
+              </Badge>
+            )}
+            {article.isDigitalProduct && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Box className="w-3 h-3" />
+                Numérique
+              </Badge>
+            )}
+          </div>
+          {article.taxedPrice != null && (
+            <div className="ml-auto flex flex-col items-end gap-0.5">
+              <span className="font-semibold text-sm">
+                {article.taxedPrice.toFixed(2)} TND
+              </span>
+              {article.discount && (
+                <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                  -{article.discount.value}{article.discount.profitType === "PERCENT" ? "%" : " TND"}
+                </Badge>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Sub-articles list */}
+        {hasSubArticles && (
+          <div className="pt-2 border-t space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              Variantes ({article.subArticles!.length})
+            </p>
+            <div className="max-h-32 overflow-y-auto space-y-1">
+              {article.subArticles!.map((sub) => (
+                <div
+                  key={sub.id}
+                  className="flex items-center justify-between text-xs py-1 px-2 rounded bg-muted/50 hover:bg-muted"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Navigate to sub-article
+                    window.location.href = `/articles/${sub.id}`;
+                  }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {sub.media && (
+                      <img
+                        src={`${S3_HOST}/${sub.media}`}
+                        alt=""
+                        className="w-5 h-5 rounded object-cover flex-shrink-0"
+                      />
+                    )}
+                    <span className="truncate">{sub.designation || sub.reference}</span>
+                    <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                  </div>
+                  {sub.taxedPrice != null && (
+                    <span className="font-medium flex-shrink-0 ml-2">
+                      {sub.taxedPrice.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -47,6 +47,15 @@ export async function GET(
         discounts: {
           orderBy: { createdAt: "desc" },
         },
+        sale_unit: {
+          select: { id: true, designation: true, reference: true },
+        },
+        purchase_unit: {
+          select: { id: true, designation: true, reference: true },
+        },
+        medias: {
+          orderBy: { sortIndex: "asc" },
+        },
       },
     });
 
@@ -103,7 +112,7 @@ export async function GET(
 
       const result: VariantWithChildren[] = [];
       for (const variant of childVariants) {
-        const children = await buildVariantTree(variant.idSubArticle);
+        const children = variant.idSubArticle ? await buildVariantTree(variant.idSubArticle) : [];
         result.push({ ...variant, children } as VariantWithChildren);
       }
       return result;
@@ -121,6 +130,9 @@ export async function GET(
       discounts: article.discounts, // All discounts
       activePricing: article.pricing[0] || null, // Most recent
       activeDiscount: article.discounts.find(d => new Date(d.startDate) <= new Date() && new Date(d.endDate) >= new Date()) || null,
+      medias: article.medias, // Article gallery medias
+      saleUnit: article.sale_unit, // Sale unit
+      purchaseUnit: article.purchase_unit, // Purchase unit
     });
   } catch (error) {
     console.error("Error fetching article:", error);
@@ -162,6 +174,8 @@ export async function PUT(
       discountPercent, discountStartDate, discountEndDate,
       // Variants
       variants,
+      // Units
+      saleUnitId, purchaseUnitId,
     } = body;
 
     // Verify article exists
@@ -216,6 +230,8 @@ export async function PUT(
       shortDescription: shortDescription ?? existingArticle.shortDescription,
       media: media ?? existingArticle.media,
       isPublish: isPublish ?? existingArticle.isPublish,
+      saleUnit: saleUnitId !== undefined ? saleUnitId : existingArticle.saleUnit,
+      purchaseUnit: purchaseUnitId !== undefined ? purchaseUnitId : existingArticle.purchaseUnit,
     };
 
     const article = await prisma.article.update({

@@ -104,6 +104,20 @@ type DiscountData = {
   createdAt?: string;
 };
 
+type Unit = {
+  id: string;
+  designation: string | null;
+  reference: string;
+};
+
+type MediaData = {
+  id: string;
+  path: string;
+  type?: string;
+  sortIndex: number | null;
+  isDefault: boolean | null;
+};
+
 // Recursive category tree component
 function CategoryTree({
   categories,
@@ -614,6 +628,14 @@ export default function EditArticlePage() {
   // Variants state
   const [variants, setVariants] = useState<VariantData[]>([]);
 
+  // Units state
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [saleUnitId, setSaleUnitId] = useState<string>("");
+  const [purchaseUnitId, setPurchaseUnitId] = useState<string>("");
+
+  // Medias state (gallery)
+  const [medias, setMedias] = useState<MediaData[]>([]);
+
   // Active tab
   const [activeTab, setActiveTab] = useState("general");
 
@@ -698,11 +720,19 @@ export default function EditArticlePage() {
       // Variants
       setVariants(data.variants || []);
 
-      // Fetch categories, tags, taxes
-      const [categoriesRes, tagsRes, taxesRes] = await Promise.all([
+      // Medias (gallery)
+      setMedias(data.medias || []);
+
+      // Units
+      setSaleUnitId(data.saleUnit?.id || "");
+      setPurchaseUnitId(data.purchaseUnit?.id || "");
+
+      // Fetch categories, tags, taxes, units
+      const [categoriesRes, tagsRes, taxesRes, unitsRes] = await Promise.all([
         fetch(`/api/categories?orgId=${data.article.idOrg}&etbId=${data.article.idEtb}`),
         fetch("/api/tags"),
         fetch(`/api/taxes?idOrg=${data.article.idOrg}&idEtb=${data.article.idEtb}`),
+        fetch(`/api/units?etbId=${data.article.idEtb}`),
       ]);
 
       if (categoriesRes.ok) {
@@ -723,6 +753,11 @@ export default function EditArticlePage() {
           setTaxId(taxesList[0].id);
         }
       }
+
+      if (unitsRes.ok) {
+        const unitsData = await unitsRes.json();
+        setUnits(unitsData.units || []);
+      }
     } catch (error) {
       console.error("Error fetching article:", error);
       toast.error("Erreur lors du chargement de l'article");
@@ -740,6 +775,25 @@ export default function EditArticlePage() {
   const handleMediaSelect = (keys: string[]) => {
     if (keys.length > 0) setMedia(keys[0]);
     setMediaLibraryOpen(false);
+  };
+
+  // Save medias order to API
+  const saveMediasOrder = async (updatedMedias: MediaData[]) => {
+    try {
+      // Update each media's sortIndex
+      await Promise.all(
+        updatedMedias.map((media, index) =>
+          fetch(`/api/medias/${media.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sortIndex: index, isDefault: media.isDefault }),
+          })
+        )
+      );
+    } catch (error) {
+      console.error("Error saving medias order:", error);
+      toast.error("Erreur lors de la sauvegarde de l'ordre");
+    }
   };
 
   // Handle media upload
@@ -825,6 +879,9 @@ export default function EditArticlePage() {
           discountEndDate,
           // Variants
           variants,
+          // Units
+          saleUnitId,
+          purchaseUnitId,
         }),
       });
 
@@ -885,33 +942,38 @@ export default function EditArticlePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 h-auto">
-          <TabsTrigger value="general" className="text-xs sm:text-sm py-2">
-            <span className="hidden sm:inline">Général</span>
-            <span className="sm:hidden">Général</span>
-          </TabsTrigger>
-          <TabsTrigger value="pricing" className="text-xs sm:text-sm py-2">
-            <span className="hidden sm:inline">Prix</span>
-            <span className="sm:hidden">Prix</span>
-          </TabsTrigger>
-          <TabsTrigger value="discount" className="text-xs sm:text-sm py-2">
-            <span className="hidden sm:inline">Remise</span>
-            <span className="sm:hidden">Remise</span>
-          </TabsTrigger>
-          <TabsTrigger value="variants" className="text-xs sm:text-sm py-2">
-            <span className="hidden sm:inline">Variantes</span>
-            <span className="sm:hidden">Variantes</span>
-            {variants.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5">
-                {variants.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="lots" className="text-xs sm:text-sm py-2">
-            <span className="hidden sm:inline">Lots</span>
-            <span className="sm:hidden">Lots</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-px -mx-1 px-1">
+          <TabsList className="flex w-max min-w-full sm:w-full sm:grid sm:grid-cols-6 h-auto">
+            <TabsTrigger value="general" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Général
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Prix
+            </TabsTrigger>
+            <TabsTrigger value="discount" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Remise
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Galerie
+              {medias.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                  {medias.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="variants" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Variantes
+              {variants.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                  {variants.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="lots" className="text-xs sm:text-sm py-2 px-3 sm:px-4 whitespace-nowrap">
+              Lots
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* General Tab */}
         <TabsContent value="general" className="space-y-4 mt-0">
@@ -1019,6 +1081,55 @@ export default function EditArticlePage() {
                       ))}
                     </div>
                   )}
+                </div>
+              </Card>
+
+              {/* Units */}
+              <Card className="p-4">
+                <div className="space-y-3">
+                  <Label className="text-xs">Unités</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Unité de vente
+                      </Label>
+                      <Select
+                        value={saleUnitId}
+                        onValueChange={setSaleUnitId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.designation || unit.reference}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Unité d&apos;achat
+                      </Label>
+                      <Select
+                        value={purchaseUnitId}
+                        onValueChange={setPurchaseUnitId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id}>
+                              {unit.designation || unit.reference}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -1462,6 +1573,172 @@ export default function EditArticlePage() {
                   </div>
                 </div>
               )}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Gallery Tab */}
+        <TabsContent value="gallery" className="mt-0">
+          <Card className="p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Galerie</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Gérez les images de votre article
+                  </p>
+                </div>
+                {medias.length > 0 && (
+                  <Badge variant="secondary">{medias.length} image(s)</Badge>
+                )}
+              </div>
+
+              {medias.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Aucune image dans la galerie</p>
+                  <p className="text-sm">Ajoutez des images via la médiathèque</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {medias.map((mediaItem, index) => (
+                    <div
+                      key={mediaItem.id}
+                      className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
+                    >
+                      {/* Reorder buttons */}
+                      <div className="flex flex-col gap-0.5">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={async () => {
+                            if (index > 0) {
+                              const newMedias = [...medias];
+                              [newMedias[index - 1], newMedias[index]] = [
+                                newMedias[index],
+                                newMedias[index - 1],
+                              ];
+                              // Update sortIndex
+                              newMedias.forEach((m, i) => {
+                                m.sortIndex = i;
+                              });
+                              setMedias(newMedias);
+                              await saveMediasOrder(newMedias);
+                            }
+                          }}
+                          disabled={index === 0}
+                          className="h-5 w-5"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={async () => {
+                            if (index < medias.length - 1) {
+                              const newMedias = [...medias];
+                              [newMedias[index], newMedias[index + 1]] = [
+                                newMedias[index + 1],
+                                newMedias[index],
+                              ];
+                              // Update sortIndex
+                              newMedias.forEach((m, i) => {
+                                m.sortIndex = i;
+                              });
+                              setMedias(newMedias);
+                              await saveMediasOrder(newMedias);
+                            }
+                          }}
+                          disabled={index === medias.length - 1}
+                          className="h-5 w-5"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
+
+                      {/* Image preview */}
+                      <div className="w-16 h-16 rounded overflow-hidden bg-muted flex-shrink-0">
+                        <img
+                          src={`${S3_HOST}/${mediaItem.path}`}
+                          alt={`Image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      {/* Image info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {mediaItem.path.split("/").pop()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Ordre: {index + 1}
+                        </p>
+                      </div>
+
+                      {/* Default badge */}
+                      {mediaItem.isDefault && (
+                        <Badge variant="default" className="text-xs bg-green-600">
+                          Par défaut
+                        </Badge>
+                      )}
+
+                      {/* Set as default button */}
+                      {!mediaItem.isDefault && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const newMedias = medias.map((m) => ({
+                              ...m,
+                              isDefault: m.id === mediaItem.id,
+                            }));
+                            setMedias(newMedias);
+                            await saveMediasOrder(newMedias);
+                          }}
+                        >
+                          Par défaut
+                        </Button>
+                      )}
+
+                      {/* Delete button */}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={async () => {
+                          if (!confirm("Êtes-vous sûr de vouloir supprimer cette image ?")) return;
+                          try {
+                            const response = await fetch(`/api/medias/${mediaItem.id}`, {
+                              method: "DELETE",
+                            });
+                            if (!response.ok) throw new Error("Erreur lors de la suppression");
+                            setMedias(medias.filter((m) => m.id !== mediaItem.id));
+                            toast.success("Image supprimée");
+                          } catch (error) {
+                            console.error("Error deleting media:", error);
+                            toast.error("Erreur lors de la suppression");
+                          }
+                        }}
+                        className="h-8 w-8 text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Note about gallery */}
+              <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
+                <p>• Réorganisez les images avec les flèches haut/bas.</p>
+                <p>• Définissez une image par défaut pour l&apos;affichage principal.</p>
+                <p>• Les modifications sont sauvegardées automatiquement.</p>
+              </div>
             </div>
           </Card>
         </TabsContent>

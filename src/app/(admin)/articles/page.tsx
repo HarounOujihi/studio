@@ -30,10 +30,160 @@ import {
   CheckCircle2,
   XCircle,
   Plus,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { useScope } from "@/hooks/use-scope";
 
 type ViewMode = "table" | "grid";
+
+// Nested article row component
+function ArticleRow({
+  article,
+  router,
+  isSubArticle = false,
+}: {
+  article: ArticleListItem;
+  router: ReturnType<typeof useRouter>;
+  isSubArticle?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const hasSubArticles = article.subArticles && article.subArticles.length > 0;
+
+  const getProductTypeLabel = (type?: string) => {
+    switch (type) {
+      case "PHYSICAL_PRODUCT":
+        return "Produit physique";
+      case "DIGITAL_PRODUCT":
+        return "Produit numérique";
+      case "SERVICE":
+        return "Service";
+      case "WEBINAR":
+        return "Webinaire";
+      default:
+        return type?.replace(/_/g, " ") || "-";
+    }
+  };
+
+  const getProductTypeColor = (type?: string) => {
+    switch (type) {
+      case "PHYSICAL_PRODUCT":
+        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
+      case "DIGITAL_PRODUCT":
+        return "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20";
+      case "SERVICE":
+        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
+      case "WEBINAR":
+        return "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20";
+      default:
+        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
+    }
+  };
+
+  return (
+    <>
+      <TableRow
+        className={`hover:bg-muted/50 cursor-pointer ${isSubArticle ? "bg-muted/30" : ""}`}
+        onClick={() => router.push(`/articles/${article.id}`)}
+      >
+        <TableCell>
+          <div
+            className={`flex items-center gap-3 ${isSubArticle ? "pl-8" : ""}`}
+          >
+            {hasSubArticles && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(!expanded);
+                }}
+                className="p-1 hover:bg-muted rounded"
+              >
+                {expanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            {!hasSubArticles && isSubArticle && (
+              <span className="w-6" />
+            )}
+            {article.media && article.media !== "" ? (
+              <div className="w-10 h-10 rounded overflow-hidden bg-muted flex-shrink-0">
+                <img
+                  src={`${S3_HOST}/${article.media}`}
+                  alt={article.designation || article.reference}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                <ImageIcon className="w-5 h-5 text-muted-foreground" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-medium truncate">
+                {article.designation || "Sans titre"}
+              </p>
+              {article.shortDescription && (
+                <p className="text-sm text-muted-foreground truncate max-w-xs">
+                  {article.shortDescription}
+                </p>
+              )}
+            </div>
+          </div>
+        </TableCell>
+        <TableCell className="font-mono text-sm">
+          {article.reference}
+        </TableCell>
+        <TableCell>
+          {article.productType && (
+            <Badge className={getProductTypeColor(article.productType)}>
+              {getProductTypeLabel(article.productType)}
+            </Badge>
+          )}
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex flex-col items-end gap-1">
+            <span className="font-medium">
+              {article.taxedPrice != null
+                ? `${article.taxedPrice.toFixed(2)} TND`
+                : "-"}
+            </span>
+            {article.discount && (
+              <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                -{article.discount.value}{article.discount.profitType === "PERCENT" ? "%" : " TND"}
+              </Badge>
+            )}
+          </div>
+        </TableCell>
+        <TableCell>
+          {article.isPublish ? (
+            <Badge variant="default" className="gap-1 bg-green-600">
+              <CheckCircle2 className="w-3 h-3" />
+              Publié
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <XCircle className="w-3 h-3" />
+              Brouillon
+            </Badge>
+          )}
+        </TableCell>
+      </TableRow>
+      {expanded &&
+        hasSubArticles &&
+        article.subArticles!.map((subArticle) => (
+          <ArticleRow
+            key={subArticle.id}
+            article={subArticle}
+            router={router}
+            isSubArticle={true}
+          />
+        ))}
+    </>
+  );
+}
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -118,36 +268,6 @@ export default function ArticlesPage() {
   useEffect(() => {
     setPage(1);
   }, [filterPublish, filterType, searchQuery]);
-
-  const getProductTypeLabel = (type?: string) => {
-    switch (type) {
-      case "PHYSICAL_PRODUCT":
-        return "Produit physique";
-      case "DIGITAL_PRODUCT":
-        return "Produit numérique";
-      case "SERVICE":
-        return "Service";
-      case "WEBINAR":
-        return "Webinaire";
-      default:
-        return type?.replace(/_/g, " ") || "-";
-    }
-  };
-
-  const getProductTypeColor = (type?: string) => {
-    switch (type) {
-      case "PHYSICAL_PRODUCT":
-        return "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20";
-      case "DIGITAL_PRODUCT":
-        return "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20";
-      case "SERVICE":
-        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20";
-      case "WEBINAR":
-        return "bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-500/20";
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -263,73 +383,17 @@ export default function ArticlesPage() {
                           <TableHead>Article</TableHead>
                           <TableHead>Référence</TableHead>
                           <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Prix TTC</TableHead>
                           <TableHead>Statut</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {articles.map((article: ArticleListItem) => (
-                          <TableRow
+                          <ArticleRow
                             key={article.id}
-                            className="hover:bg-muted/50 cursor-pointer"
-                            onClick={() => router.push(`/articles/${article.id}`)}
-                          >
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                {article.media && article.media !== "" ? (
-                                  <div className="w-10 h-10 rounded overflow-hidden bg-muted flex-shrink-0">
-                                    <img
-                                      src={`${S3_HOST}/${article.media}`}
-                                      alt={
-                                        article.designation || article.reference
-                                      }
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                                    <ImageIcon className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <div className="min-w-0">
-                                  <p className="font-medium truncate">
-                                    {article.designation || "Sans titre"}
-                                  </p>
-                                  {article.shortDescription && (
-                                    <p className="text-sm text-muted-foreground truncate max-w-xs">
-                                      {article.shortDescription}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm">
-                              {article.reference}
-                            </TableCell>
-                            <TableCell>
-                              {article.productType && (
-                                <Badge
-                                  className={getProductTypeColor(
-                                    article.productType,
-                                  )}
-                                >
-                                  {getProductTypeLabel(article.productType)}
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {article.isPublish ? (
-                                <Badge variant="default" className="gap-1 bg-green-600">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Publié
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="gap-1">
-                                  <XCircle className="w-3 h-3" />
-                                  Brouillon
-                                </Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
+                            article={article}
+                            router={router}
+                          />
                         ))}
                       </TableBody>
                     </Table>
