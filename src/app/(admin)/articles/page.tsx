@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ import { useScope } from "@/hooks/use-scope";
 type ViewMode = "table" | "grid";
 
 export default function ArticlesPage() {
+  const router = useRouter();
   const scope = useScope();
 
   // Local state
@@ -269,6 +271,7 @@ export default function ArticlesPage() {
                           <TableRow
                             key={article.id}
                             className="hover:bg-muted/50 cursor-pointer"
+                            onClick={() => router.push(`/articles/${article.id}`)}
                           >
                             <TableCell>
                               <div className="flex items-center gap-3">
@@ -337,7 +340,11 @@ export default function ArticlesPage() {
                 {viewMode === "grid" && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
                     {articles.map((article) => (
-                      <ArticleCard key={article.id} article={article} />
+                      <ArticleCard
+                        key={article.id}
+                        article={article}
+                        onClick={() => router.push(`/articles/${article.id}`)}
+                      />
                     ))}
                   </div>
                 )}
@@ -346,7 +353,11 @@ export default function ArticlesPage() {
                 {viewMode === "table" && (
                   <div className="lg:hidden space-y-3">
                     {articles.map((article) => (
-                      <ArticleCard key={article.id} article={article} />
+                      <ArticleCard
+                        key={article.id}
+                        article={article}
+                        onClick={() => router.push(`/articles/${article.id}`)}
+                      />
                     ))}
                   </div>
                 )}
