@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   XCircle,
+  Plus,
 } from "lucide-react";
 import { useScope } from "@/hooks/use-scope";
 
@@ -148,9 +150,17 @@ export default function ArticlesPage() {
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex items-center gap-2">
-        <Package className="w-5 h-5 text-primary" />
-        <h1 className="text-xl font-semibold">Articles</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Package className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-semibold">Articles</h1>
+        </div>
+        <Button asChild size="sm">
+          <Link href="/articles/new">
+            <Plus className="w-4 h-4 mr-1" />
+            Nouveau
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
