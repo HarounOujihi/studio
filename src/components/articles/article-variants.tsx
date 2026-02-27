@@ -37,6 +37,8 @@ import {
   Layers,
   List,
   Sparkles,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 export type VariantType = "COLOR" | "SIZE" | "NUMBER" | "TEXT";
@@ -488,17 +490,60 @@ function ManualVariantItem({
   onChange,
   onDelete,
   onAddChild,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: {
   variant: VariantInput;
   onChange: (variant: VariantInput) => void;
   onDelete: () => void;
   onAddChild: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }) {
   const [showColorPicker, setShowColorPicker] = useState(false);
+
+  const handleColorChange = (hex: string) => {
+    const updated = { ...variant, colorHex: hex };
+    // Auto-fill value if empty
+    if (!variant.value) {
+      updated.value = hex;
+    }
+    onChange(updated);
+  };
 
   return (
     <div className="p-3 bg-muted/30 rounded-lg space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Sort buttons */}
+        <div className="flex flex-col gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="h-5 w-5"
+          >
+            <ArrowUp className="w-3 h-3" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="h-5 w-5"
+          >
+            <ArrowDown className="w-3 h-3" />
+          </Button>
+        </div>
+
+        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
+
         <Select
           value={variant.type}
           onValueChange={(val: VariantType) => onChange({ ...variant, type: val })}
@@ -518,7 +563,7 @@ function ManualVariantItem({
           <button
             type="button"
             onClick={() => setShowColorPicker(!showColorPicker)}
-            className="w-8 h-8 rounded border-2 border-muted-foreground/20 hover:border-primary transition-colors"
+            className="w-8 h-8 rounded border-2 border-muted-foreground/20 hover:border-primary transition-colors shrink-0"
             style={{ backgroundColor: variant.colorHex || "#ccc" }}
           />
         )}
@@ -542,7 +587,7 @@ function ManualVariantItem({
           variant="ghost"
           size="icon"
           onClick={onDelete}
-          className="h-8 w-8 text-destructive"
+          className="h-8 w-8 text-destructive shrink-0"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -551,7 +596,7 @@ function ManualVariantItem({
       {variant.type === "COLOR" && showColorPicker && (
         <ColorPicker
           value={variant.colorHex || "#000000"}
-          onChange={(hex) => onChange({ ...variant, colorHex: hex })}
+          onChange={handleColorChange}
         />
       )}
 
@@ -600,6 +645,14 @@ function ManualVariantsMode({
     onChange(variants.filter((_, i) => i !== index));
   };
 
+  const moveVariant = (index: number, direction: "up" | "down") => {
+    const newVariants = [...variants];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= variants.length) return;
+    [newVariants[index], newVariants[targetIndex]] = [newVariants[targetIndex], newVariants[index]];
+    onChange(newVariants);
+  };
+
   const addChildVariant = (parentIndex: number) => {
     const parent = variants[parentIndex];
     const newChild: VariantInput = {
@@ -634,6 +687,15 @@ function ManualVariantsMode({
     updateVariant(parentIndex, { ...parent, children: newChildren });
   };
 
+  const moveChildVariant = (parentIndex: number, childIndex: number, direction: "up" | "down") => {
+    const parent = variants[parentIndex];
+    const children = [...(parent.children || [])];
+    const targetIndex = direction === "up" ? childIndex - 1 : childIndex + 1;
+    if (targetIndex < 0 || targetIndex >= children.length) return;
+    [children[childIndex], children[targetIndex]] = [children[targetIndex], children[childIndex]];
+    updateVariant(parentIndex, { ...parent, children });
+  };
+
   return (
     <div className="space-y-3">
       {variants.map((variant, index) => (
@@ -643,6 +705,10 @@ function ManualVariantsMode({
             onChange={(v) => updateVariant(index, v)}
             onDelete={() => deleteVariant(index)}
             onAddChild={() => addChildVariant(index)}
+            onMoveUp={() => moveVariant(index, "up")}
+            onMoveDown={() => moveVariant(index, "down")}
+            canMoveUp={index > 0}
+            canMoveDown={index < variants.length - 1}
           />
 
           {/* Children */}
@@ -657,6 +723,10 @@ function ManualVariantsMode({
                   onAddChild={() => {
                     // Could support deeper nesting if needed
                   }}
+                  onMoveUp={() => moveChildVariant(index, childIndex, "up")}
+                  onMoveDown={() => moveChildVariant(index, childIndex, "down")}
+                  canMoveUp={childIndex > 0}
+                  canMoveDown={childIndex < (variant.children?.length || 0) - 1}
                 />
               ))}
             </div>
@@ -779,7 +849,7 @@ interface ArticleVariantsProps {
 
 export function ArticleVariants({ variants, onChange }: ArticleVariantsProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDimensionMode, setIsDimensionMode] = useState(true);
+  const [isDimensionMode, setIsDimensionMode] = useState(false);
 
   const totalVariants = countTotalVariants(variants);
 
