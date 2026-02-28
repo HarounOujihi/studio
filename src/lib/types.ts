@@ -98,6 +98,72 @@ export type MovementListItem = Pick<
 >;
 
 // ============================================================================
+// Deposit Types
+// ============================================================================
+
+export type Deposit = Prisma.DepositGetPayload<{}>;
+export type DepositType = Prisma.DepositType;
+
+export type DepositListItem = Pick<
+  Deposit,
+  | "id"
+  | "idOrg"
+  | "idEtb"
+  | "reference"
+  | "designation"
+  | "type"
+  | "isDefault"
+> & {
+  createdAt?: string | null;
+  address?: {
+    street: string | null;
+    city: string | null;
+    country: string | null;
+  } | null;
+  locationCount?: number;
+};
+
+// ============================================================================
+// Location Types
+// ============================================================================
+
+export type Location = Prisma.LocationGetPayload<{}>;
+
+export type LocationListItem = Pick<
+  Location,
+  | "id"
+  | "idOrg"
+  | "idEtb"
+  | "idDepo"
+  | "reference"
+  | "designation"
+  | "volume"
+> & {
+  createdAt?: string | null;
+  deposit?: {
+    reference: string;
+    designation: string | null;
+  } | null;
+};
+
+// ============================================================================
+// Unit Types
+// ============================================================================
+
+export type Unit = Prisma.UnitGetPayload<{}>;
+
+export type UnitListItem = Pick<
+  Unit,
+  | "id"
+  | "idOrg"
+  | "idEtb"
+  | "reference"
+  | "designation"
+> & {
+  createdAt?: string | null;
+};
+
+// ============================================================================
 // Client Types
 // ============================================================================
 
